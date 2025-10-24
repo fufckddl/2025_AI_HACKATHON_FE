@@ -88,34 +88,21 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(
-                Ionicons.calendar_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
             const Text(
               '루틴 목록',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
-                fontSize: 20,
+                fontSize: 18,
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF9FAFB),
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
@@ -236,9 +223,9 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),

@@ -16,50 +16,63 @@ class CreateRoutineScreen extends StatefulWidget {
 class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _cycleController = TextEditingController();
   final _contentController = TextEditingController();
   
   bool _isLoading = false;
+  
+  // 옵션 관리
+  List<Map<String, dynamic>> _options = [];
+  
+  @override
+  void initState() {
+    super.initState();
+    // 초기 옵션 하나 추가
+    _addOption();
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _cycleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  void _addOption() {
+    setState(() {
+      _options.add({
+        'id': DateTime.now().millisecondsSinceEpoch,
+        'minutes': TextEditingController(),
+        'text': TextEditingController(),
+      });
+    });
+  }
+
+  void _removeOption(int index) {
+    setState(() {
+      _options[index]['minutes'].dispose();
+      _options[index]['text'].dispose();
+      _options.removeAt(index);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(
-                Ionicons.add_circle_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
             const Text(
               '루틴 생성',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
-                fontSize: 20,
+                fontSize: 18,
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF9FAFB),
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
@@ -114,26 +127,6 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
               
               const SizedBox(height: 16),
               
-              // 루틴 주기
-              _buildTextField(
-                controller: _cycleController,
-                label: '루틴 주기 (일)',
-                hint: '몇 일마다 반복할지 입력하세요',
-                icon: Icons.schedule,
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '루틴 주기를 입력해주세요';
-                  }
-                  final cycle = int.tryParse(value);
-                  if (cycle == null || cycle <= 0) {
-                    return '올바른 주기를 입력해주세요 (1일 이상)';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 16),
               
               // 루틴 내용
               _buildTextField(
@@ -150,6 +143,23 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                 },
               ),
               
+              const SizedBox(height: 30),
+              
+              // 옵션 섹션
+              _buildSectionTitle('루틴 옵션'),
+              const SizedBox(height: 16),
+              
+              // 옵션 목록
+              ..._options.asMap().entries.map((entry) {
+                final index = entry.key;
+                final option = entry.value;
+                return _buildOptionItem(index, option);
+              }).toList(),
+              
+              // 옵션 추가 버튼
+              const SizedBox(height: 16),
+              _buildAddOptionButton(),
+              
               const SizedBox(height: 40),
               
               // 루틴 생성 버튼
@@ -161,8 +171,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   borderRadius: BorderRadius.circular(12.0),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -208,9 +218,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   border: Border.all(color: Colors.grey[300]!),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -269,9 +279,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -330,7 +340,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         id: 0, // 서버에서 자동 생성될 ID
         userId: 1, // 임시 사용자 ID (실제로는 로그인한 사용자 ID)
         name: _nameController.text.trim(),
-        cycle: int.parse(_cycleController.text),
+        cycle: 1, // 기본값: 매일
         content: _contentController.text.trim(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -371,5 +381,138 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         });
       }
     }
+  }
+
+  Widget _buildOptionItem(int index, Map<String, dynamic> option) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '옵션 ${index + 1}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const Spacer(),
+              if (_options.length > 1)
+                IconButton(
+                  onPressed: () => _removeOption(index),
+                  icon: const Icon(
+                    Ionicons.close_circle,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: _buildTextField(
+                  controller: option['minutes'],
+                  label: '분전',
+                  hint: '5',
+                  icon: Ionicons.time_outline,
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '분을 입력해주세요';
+                    }
+                    final minutes = int.tryParse(value);
+                    if (minutes == null || minutes <= 0) {
+                      return '올바른 분을 입력해주세요';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              Expanded(
+                flex: 5,
+                child: _buildTextField(
+                  controller: option['text'],
+                  label: 'AI가 읽을 텍스트',
+                  hint: '알림 텍스트를 입력하세요',
+                  icon: Ionicons.chatbubble_outline,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '텍스트를 입력해주세요';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddOptionButton() {
+    return Container(
+      width: double.infinity,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextButton.icon(
+        onPressed: _addOption,
+        icon: const Icon(
+          Ionicons.add_circle_outline,
+          color: AppColors.primary,
+          size: 20,
+        ),
+        label: const Text(
+          '옵션 추가',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/home.dart';
 import 'constants/app_colors.dart';
-import 'auth/auth.dart';
+import 'auth/auth_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,11 +45,10 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const HomeScreen(),
+      home: const AuthScreen(),
       routes: {
         '/home': (context) => const HomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const SignUpScreen(),
+        '/auth': (context) => const AuthScreen(),
       },
     );
   }

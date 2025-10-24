@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import '../constants/app_colors.dart';
 import '../models/user_model.dart';
+import '../screens/character_selection_screen.dart';
 
 class MyInfoScreen extends StatefulWidget {
   const MyInfoScreen({super.key});
@@ -12,145 +13,145 @@ class MyInfoScreen extends StatefulWidget {
 }
 
 class _MyInfoScreenState extends State<MyInfoScreen> {
-  // 임시 유저 데이터 (실제로는 Provider나 상태관리에서 가져와야 함)
-  final UserModel user = UserModel(
+  // Dummy user data for demonstration
+  final UserModel _currentUser = UserModel(
     id: 1,
-    name: '김해커톤',
-    email: 'hackathon@example.com',
+    name: '홍길동',
+    email: 'hong@example.com',
     password: 'password123',
-    childName: '김루틴',
+    childName: '홍루티',
     childAge: 8,
   );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(
-                Ionicons.person_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              '마이페이지',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(Ionicons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Ionicons.settings_outline, color: Colors.black),
-            onPressed: () {
-              // 설정 페이지로 이동
-            },
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // 프로필 헤더 섹션
+              _buildProfileHeader(),
+              
+              // 통계 카드들
+              _buildStatsCards(),
+              
+              const SizedBox(height: 20),
+              
+              // 구독 플랜 섹션
+              _buildSubscriptionPlan(),
+              
+              const SizedBox(height: 20),
+              
+              // 바로가기 섹션
+              _buildShortcutsSection(),
+              
+              const SizedBox(height: 20),
+              
+              // 계정 관리 섹션
+              _buildAccountManagementSection(),
+              
+              const SizedBox(height: 20),
+              
+              // 업적 섹션
+              _buildAchievementsSection(),
+              
+              const SizedBox(height: 20),
+              
+              // 환경 설정 섹션
+              _buildEnvironmentSettingsSection(),
+              
+              const SizedBox(height: 20),
+              
+              // 지원 및 정보 섹션
+              _buildSupportSection(),
+              
+              const SizedBox(height: 20),
+              
+              // 로그아웃 버튼
+              _buildLogoutButton(),
+              
+              const SizedBox(height: 20),
+              
+              // 계정 삭제
+              _buildDeleteAccountButton(),
+              
+              const SizedBox(height: 100), // 하단 네비게이션 바 공간
+            ],
           ),
-        ],
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: Colors.white,
-          statusBarIconBrightness: Brightness.dark,
-          statusBarBrightness: Brightness.light,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 프로필 섹션
-            _buildProfileSection(),
-            
-            const SizedBox(height: 30),
-            
-            // 사용자 정보 카드
-            _buildUserInfoCard(),
-            
-            const SizedBox(height: 30),
-            
-            // 아이 정보 카드
-            _buildChildInfoCard(),
-            
-            const SizedBox(height: 30),
-            
-            // 통계 섹션
-            _buildStatsSection(),
-            
-            const SizedBox(height: 30),
-            
-            // 메뉴 섹션
-            _buildMenuSection(),
-          ],
-        ),
-      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  Widget _buildProfileSection() {
+  Widget _buildProfileHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
       ),
       child: Column(
         children: [
           // 프로필 이미지
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(40),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.white,
+                child: Text(
+                  _currentUser.name.isNotEmpty ? _currentUser.name[0] : '홍',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ],
-            ),
-            child: const Icon(
-              Ionicons.person,
-              size: 40,
-              color: AppColors.primary,
-            ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary, width: 2),
+                  ),
+                  child: const Icon(
+                    Ionicons.camera_outline,
+                    size: 12,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
+          
           const SizedBox(height: 16),
+          
+          // 사용자 이름
           Text(
-            '안녕하세요, ${user.name}님! 👋',
+            _currentUser.name,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
+          
+          const SizedBox(height: 4),
+          
+          // 이메일
           Text(
-            '루틴 관리와 목표 달성을 함께해요',
+            _currentUser.email,
             style: const TextStyle(
               fontSize: 16,
               color: Colors.white70,
@@ -161,180 +162,479 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     );
   }
 
-  Widget _buildUserInfoCard() {
-    return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: const Icon(
-                    Ionicons.person_outline,
-                    color: AppColors.primary,
-                    size: 24.0,
-                  ),
-                ),
-                const SizedBox(width: 12.0),
-                const Text(
-                  '사용자 정보',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20.0),
-            _buildInfoRow('이름', user.name),
-            const SizedBox(height: 12.0),
-            _buildInfoRow('이메일', user.email),
-            const SizedBox(height: 12.0),
-            _buildInfoRow('가입일', '2024.01.15'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChildInfoCard() {
-    return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: const Icon(
-                    Ionicons.people_outline,
-                    color: Colors.orange,
-                    size: 24.0,
-                  ),
-                ),
-                const SizedBox(width: 12.0),
-                const Text(
-                  '아이 정보',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20.0),
-            _buildInfoRow('아이 이름', user.childName),
-            const SizedBox(height: 12.0),
-            _buildInfoRow('아이 나이', '${user.childAge}세'),
-            const SizedBox(height: 12.0),
-            _buildInfoRow('관리 기간', '8개월'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14.0,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14.0,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '활동 통계',
-          style: TextStyle(
-            fontSize: 18.0,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 16.0),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard('완료된 루틴', '42', Colors.green),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatCard('연속 일수', '15', Colors.blue),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatCard('총 루틴', '8', Colors.purple),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, Color color) {
+  Widget _buildStatsCards() {
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildStatCard(
+              icon: Ionicons.calendar_outline,
+              value: '21',
+              label: '루틴',
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              icon: Ionicons.time_outline,
+              value: '12.5h',
+              label: '시간',
+              color: Colors.purple,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              icon: Ionicons.checkmark_circle_outline,
+              value: '72%',
+              label: '완료율',
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12.0),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 24.0,
+            style: const TextStyle(
+              fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: Colors.black,
             ),
           ),
-          const SizedBox(height: 4.0),
+          const SizedBox(height: 4),
           Text(
             label,
             style: const TextStyle(
-              fontSize: 12.0,
-              color: AppColors.textSecondary,
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionPlan() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Ionicons.diamond_outline, color: Colors.purple, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Plus 플랜',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                '관리 >',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          const Text(
+            '이번 달 사용량',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // 진행률 바
+          Row(
+            children: [
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: 0.3, // 15/50
+                  backgroundColor: Colors.grey[300],
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '15시간 / 50시간',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          Row(
+            children: [
+              const Text(
+                '다음 결제일: ',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+              const Text(
+                '2025.11.19',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+              const Spacer(),
+              Switch(
+                value: false,
+                onChanged: (value) {},
+                activeColor: AppColors.primary,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShortcutsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '바로가기',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildShortcutCard(
+                  icon: Ionicons.bar_chart_outline,
+                  label: '대시보드',
+                  color: AppColors.primary,
+                  badge: '12',
+                  badgeColor: Colors.red,
+                  onTap: null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildShortcutCard(
+                  icon: Ionicons.star_outline,
+                  label: '즐겨찾기',
+                  color: Colors.orange,
+                  badge: '8',
+                  badgeColor: AppColors.primary,
+                  onTap: null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildShortcutCard(
+                  icon: Ionicons.people_circle_outline,
+                  label: '캐릭터',
+                  color: Colors.purple,
+                  badge: '1',
+                  badgeColor: AppColors.primary,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CharacterSelectionScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildShortcutCard(
+                  icon: Ionicons.pricetag_outline,
+                  label: '태그',
+                  color: Colors.green,
+                  badge: '24',
+                  badgeColor: AppColors.primary,
+                  onTap: null,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShortcutCard({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required String badge,
+    required Color badgeColor,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: color, size: 24),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    badge,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountManagementSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '계정 관리',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildMenuItem(
+            icon: Ionicons.person_outline,
+            title: '프로필 수정',
+            color: AppColors.primary,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.card_outline,
+            title: '구독 변경',
+            subtitle: 'Plus',
+            color: Colors.purple,
+            badge: 'Plus',
+            badgeColor: AppColors.primary,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.notifications_outline,
+            title: '알림 설정',
+            subtitle: 'ON',
+            color: AppColors.primary,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.shield_checkmark_outline,
+            title: '보안',
+            color: Colors.green,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.link_outline,
+            title: '연동 관리',
+            subtitle: '2개 연동됨',
+            color: Colors.grey,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '업적',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAchievementCard(
+                  icon: Ionicons.sparkles_outline,
+                  title: '첫 루틴',
+                  date: '2025.01.15',
+                  color: Colors.purple,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAchievementCard(
+                  icon: Ionicons.trophy_outline,
+                  title: '10회 달성',
+                  date: '2025.02.10',
+                  color: Colors.amber,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAchievementCard(
+                  icon: Ionicons.diamond_outline,
+                  title: '월간 왕',
+                  date: '2025.03.01',
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementCard({
+    required IconData icon,
+    required String title,
+    required String date,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            date,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
             ),
             textAlign: TextAlign.center,
           ),
@@ -343,114 +643,284 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     );
   }
 
-  Widget _buildMenuSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '설정 및 관리',
-          style: TextStyle(
-            fontSize: 18.0,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+  Widget _buildEnvironmentSettingsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '환경 설정',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
-        ),
-        const SizedBox(height: 16.0),
-        _buildMenuItem(
-          icon: Ionicons.pencil_outline,
-          title: '프로필 수정',
-          subtitle: '개인정보 및 아이 정보 수정',
-          onTap: () {
-            // 프로필 수정 페이지로 이동
-          },
-        ),
-        _buildMenuItem(
-          icon: Ionicons.notifications_outline,
-          title: '알림 설정',
-          subtitle: '루틴 알림 및 푸시 설정',
-          onTap: () {
-            // 알림 설정 페이지로 이동
-          },
-        ),
-        _buildMenuItem(
-          icon: Ionicons.shield_outline,
-          title: '개인정보 보호',
-          subtitle: '데이터 보호 및 보안 설정',
-          onTap: () {
-            // 개인정보 보호 페이지로 이동
-          },
-        ),
-        _buildMenuItem(
-          icon: Ionicons.help_circle_outline,
-          title: '도움말',
-          subtitle: '자주 묻는 질문 및 문의',
-          onTap: () {
-            // 도움말 페이지로 이동
-          },
-        ),
-        _buildMenuItem(
-          icon: Ionicons.log_out_outline,
-          title: '로그아웃',
-          subtitle: '계정에서 로그아웃',
-          onTap: () {
-            _showLogoutDialog();
-          },
-          isDestructive: true,
-        ),
-      ],
+          const SizedBox(height: 12),
+          _buildMenuItem(
+            icon: Ionicons.musical_notes_outline,
+            title: '음성 품질',
+            subtitle: '고품질 >',
+            color: AppColors.primary,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.folder_outline,
+            title: '저장 위치',
+            subtitle: '기기 >',
+            color: Colors.grey,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.globe_outline,
+            title: '언어',
+            subtitle: '한국어 >',
+            color: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSupportSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '지원 및 정보',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildMenuItem(
+            icon: Ionicons.help_circle_outline,
+            title: '도움말',
+            color: AppColors.primary,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.chatbubble_outline,
+            title: '문의하기',
+            color: AppColors.primary,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.megaphone_outline,
+            title: '공지사항',
+            color: Colors.orange,
+            badge: 'New',
+            badgeColor: Colors.red,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.information_circle_outline,
+            title: '앱 정보',
+            subtitle: 'v1.2.3 >',
+            color: Colors.grey,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.document_text_outline,
+            title: '이용약관',
+            color: Colors.grey,
+          ),
+          _buildMenuItem(
+            icon: Ionicons.lock_closed_outline,
+            title: '개인정보처리방침',
+            color: Colors.grey,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool isDestructive = false,
+    String? subtitle,
+    required Color color,
+    String? badge,
+    Color? badgeColor,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8.0),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isDestructive ? Colors.red : AppColors.primary,
-          size: 24,
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (badge != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: badgeColor ?? AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                badge,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          const SizedBox(width: 8),
+          const Icon(
+            Ionicons.chevron_forward,
+            color: Colors.grey,
+            size: 16,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      width: double.infinity,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _showLogoutDialog,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        title: Text(
-          title,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Ionicons.log_out_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text(
+              '로그아웃',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccountButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: TextButton(
+        onPressed: _showDeleteAccountDialog,
+        child: const Text(
+          '계정 삭제',
           style: TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.w600,
-            color: isDestructive ? Colors.red : AppColors.textPrimary,
+            fontSize: 14,
+            color: Colors.grey,
+            decoration: TextDecoration.underline,
           ),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12.0,
-            color: AppColors.textSecondary,
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -4),
           ),
-        ),
-        trailing: const Icon(
-          Ionicons.chevron_forward,
-          color: Colors.grey,
-          size: 16,
-        ),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.grey,
+        currentIndex: 4, // 마이페이지 탭
+        onTap: (index) {
+          if (index != 4) {
+            Navigator.pop(context);
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Ionicons.home_outline),
+            activeIcon: Icon(Ionicons.home),
+            label: '홈',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Ionicons.calendar_outline),
+            label: '루틴',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Ionicons.people_outline),
+            label: '팀',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Ionicons.people_circle_outline),
+            label: '캐릭터',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Ionicons.person_outline),
+            label: '마이',
+          ),
+        ],
       ),
     );
   }
@@ -461,28 +931,47 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('로그아웃'),
-          content: const Text('정말 로그아웃 하시겠습니까?'),
-          actions: [
+          content: const Text('정말로 로그아웃하시겠습니까?'),
+          actions: <Widget>[
             TextButton(
+              child: const Text('취소'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('취소'),
             ),
             TextButton(
+              child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 Navigator.of(context).pop();
-                // 로그아웃 처리
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
+                Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
               },
-              child: const Text(
-                '로그아웃',
-                style: TextStyle(color: Colors.red),
-              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('계정 삭제'),
+          content: const Text('정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('취소'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('삭제', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // 계정 삭제 로직
+              },
             ),
           ],
         );

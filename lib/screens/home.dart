@@ -6,6 +6,8 @@ import '../widgets/custom_button.dart';
 import '../auth/auth.dart';
 import '../routine/routine.dart';
 import '../info/myInfo.dart';
+import 'character_selection_screen.dart';
+import '../models/routine_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,34 +23,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(
-                Ionicons.document_text_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
             const SizedBox(width: 8),
             const Text(
-              'HackathonLife',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
+              '루티(ROUTY)',
+            style: TextStyle(
+            fontWeight: FontWeight.bold,
                 color: AppColors.primary,
-                fontSize: 20,
+                fontSize: 18,
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xffffffff),
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
@@ -84,9 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.only(bottom: 20.0),
                   child: Text(
                     '안녕하세요, 사용자님 👋',
-                    style: TextStyle(
+                  style: TextStyle(
                       fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
@@ -122,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 
                 const SizedBox(height: 30),
                 
-                // 최근 루틴 섹션
+                // 오늘 루틴 섹션
                 _buildRecentRoutinesSection(),
               ],
             ),
@@ -166,13 +156,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         setState(() {
                           _isDrawerOpen = false;
                         });
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
                             builder: (context) => const ListRoutineScreen(),
-                          ),
-                        );
-                      },
+                      ),
+                    );
+                  },
+                    ),
+                    _buildDrawerItem(
+                      icon: Ionicons.people_outline,
+                      title: '캐릭터 선택',
+                      onTap: () {
+                        setState(() {
+                          _isDrawerOpen = false;
+                        });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                            builder: (context) => const CharacterSelectionScreen(),
+                      ),
+                    );
+                  },
                     ),
                     _buildDrawerItem(
                       icon: Ionicons.trophy_outline,
@@ -209,11 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           _isDrawerOpen = false;
                         });
                       },
-                    ),
-                  ],
                 ),
-              ),
+              ],
             ),
+          ),
+        ),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -264,10 +269,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRoutineCard() {
-    return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
         onTap: () {
@@ -346,10 +358,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGoalCard() {
-    return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -404,10 +423,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatsCard() {
-    return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -500,9 +526,9 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -531,19 +557,61 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentRoutinesSection() {
+    // 오늘 날짜 계산
+    final now = DateTime.now();
+    final today = '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}';
+    
+    // 오늘 해야할 루틴들 (더미 데이터)
+    final todayRoutines = [
+      {
+        'title': '아침 운동',
+        'time': '07:00',
+        'cycle': '매일',
+        'content': '30분 조깅과 스트레칭',
+        'isCompleted': false,
+      },
+      {
+        'title': '독서 시간',
+        'time': '20:00',
+        'cycle': '매일',
+        'content': '30분 자기계발서 읽기',
+        'isCompleted': true,
+      },
+      {
+        'title': '일기 쓰기',
+        'time': '21:00',
+        'cycle': '매일',
+        'content': '오늘 하루 정리하기',
+        'isCompleted': false,
+      },
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              '최근 루틴',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '오늘 루틴',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  today,
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
             TextButton(
               onPressed: () {
@@ -565,30 +633,140 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 16.0),
-        _buildRoutineItem(
-          '500만원 예산 배정 및...',
-          '2025.10.19',
-          '2분 15초',
-          ['예산', '마케팅'],
-          true,
-        ),
-        const SizedBox(height: 12.0),
-        _buildRoutineItem(
-          'Q4 제품 로드맵 회의',
-          '2025.10.18',
-          '2분 30초',
-          ['제품', '전략'],
-          true,
-        ),
-        const SizedBox(height: 12.0),
-        _buildRoutineItem(
-          '주간 팀 스탠드업',
-          '2025.10.17',
-          '1분 45초',
-          ['스탠드업', '개발'],
-          true,
-        ),
+        ...todayRoutines.map((routine) => Column(
+          children: [
+            _buildTodayRoutineItem(
+              routine['title'] as String,
+              routine['time'] as String,
+              routine['cycle'] as String,
+              routine['content'] as String,
+              routine['isCompleted'] as bool,
+            ),
+            const SizedBox(height: 12.0),
+          ],
+        )).toList(),
       ],
+    );
+  }
+
+  Widget _buildTodayRoutineItem(String title, String time, String cycle, String content, bool isCompleted) {
+    // 더미 루틴 모델 생성
+    final dummyRoutine = RoutineModel(
+      id: 1,
+      userId: 1,
+      name: title,
+      cycle: 1, // 매일
+      content: content,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RoutineDetailScreen(routine: dummyRoutine),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12.0),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                if (isCompleted)
+                  Row(
+                    children: [
+                      Container(
+                        width: 8.0,
+                        height: 8.0,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      const Text(
+                        '완료',
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                Icon(
+                  Ionicons.time_outline,
+                  size: 16.0,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 4.0),
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(width: 16.0),
+                Icon(
+                  Ionicons.calendar_outline,
+                  size: 16.0,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 4.0),
+                Text(
+                  cycle,
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            Text(
+              content,
+              style: TextStyle(
+                fontSize: 14.0,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -600,9 +778,9 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -724,9 +902,9 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
-            blurRadius: 8,
-            offset: Offset(0, -2),
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -736,20 +914,27 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          
-          if (index == 4) { // 마이페이지 탭
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MyInfoScreen(),
-              ),
-            );
-          }
-        },
+                onTap: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                  
+                  if (index == 3) { // 캐릭터 탭
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CharacterSelectionScreen(),
+                      ),
+                    );
+                  } else if (index == 4) { // 마이페이지 탭
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MyInfoScreen(),
+                      ),
+                    );
+                  }
+                },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Ionicons.home_outline),
@@ -765,8 +950,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: '팀',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Ionicons.bar_chart_outline),
-            label: '대시보드',
+            icon: Icon(Ionicons.people_circle_outline),
+            label: '캐릭터',
           ),
           BottomNavigationBarItem(
             icon: Icon(Ionicons.person_outline),
