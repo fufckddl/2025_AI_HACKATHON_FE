@@ -32,10 +32,8 @@
 
 ## 기술 스택
 
-- **Frontend**: Flutter
-- **Language**: Dart
-- **Icons**: IonIcons
-- **Platform**: iOS, Android, Web
+<img width="326" height="282" alt="제목 없음" src="https://github.com/user-attachments/assets/aa9b84bf-d6ba-4609-88aa-1b9d3d8e9c43" />
+
 
 ## 프로젝트 구조
 
