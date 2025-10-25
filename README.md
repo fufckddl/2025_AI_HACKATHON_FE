@@ -4,7 +4,8 @@
 
 루틴 관리 Flutter 애플리케이션
 
-<img width="1212" height="682" alt="image" src="https://github.com/user-attachments/assets/b047d5bd-2216-4e5b-9a2a-dfdbf01cdf50" />
+<img width="1212" height="682" alt="image" src="https://github.com/user-attachments/assets/8a8d6425-c687-4fd0-ba26-c2bc0dcc63f8" />
+
 
 **"AI 챗봇 기반 소아 ADHD 아동 일상·수면 관리 및 부모 지원 플랫폼"**
 </div>
