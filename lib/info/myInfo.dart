@@ -5,6 +5,7 @@ import '../constants/app_colors.dart';
 import '../models/user_model.dart';
 import '../components/bottom_navigation_bar.dart';
 import '../screens/character_selection_screen.dart';
+import '../screens/coaching_report_screen.dart';
 
 class MyInfoScreen extends StatefulWidget {
   const MyInfoScreen({super.key});
@@ -376,17 +377,25 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   onTap: null,
                 ),
               ),
-              /*const SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildShortcutCard(
-                  icon: Ionicons.star_outline,
-                  label: '즐겨찾기',
+                  icon: Ionicons.document_text_outline,
+                  label: '코칭 리포트',
                   color: Colors.orange,
-                  badge: '8',
-                  badgeColor: AppColors.primary,
-                  onTap: null,
+                  badge: 'New',
+                  badgeColor: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CoachingReportScreen(),
+                      ),
+                    );
+                  },
                 ),
-              ),*/
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildShortcutCard(
                   icon: Ionicons.people_circle_outline,
@@ -593,51 +602,6 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     );
   }*/
 
-  Widget _buildAchievementCard({
-    required IconData icon,
-    required String title,
-    required String date,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            date,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEnvironmentSettingsSection() {
     return Container(

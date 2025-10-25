@@ -8,6 +8,7 @@ import 'voice_chat_screen.dart';
 import '../models/routine_model.dart';
 import '../components/routine_detail_popup.dart';
 import '../components/bottom_navigation_bar.dart';
+import '../components/focus_tools_section.dart';
 import 'notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -116,6 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 
                 // 통계 카드
                 _buildStatsCard(),
+                
+                const SizedBox(height: 30),
+                
+                // 집중력 유지 도구 섹션
+                const FocusToolsSection(),
                 
                 const SizedBox(height: 30),
                 
@@ -912,6 +918,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
 
 }

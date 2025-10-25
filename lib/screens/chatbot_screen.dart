@@ -3,18 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import '../constants/app_colors.dart';
 import '../components/bottom_navigation_bar.dart';
-
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final DateTime timestamp;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    required this.timestamp,
-  });
-}
+import '../models/chat_message.dart';
+import '../services/ai_chat_service.dart';
+import '../services/chat_storage_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -27,12 +18,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // 초기 인사 메시지
-    _addBotMessage('안녕하세요! 저는 루티(ROUTY) 챗봇입니다. 🎯\n루틴 관리에 대해 도움을 드릴 수 있어요!');
+    _loadChatHistory();
   }
 
   @override
@@ -42,25 +33,60 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     super.dispose();
   }
 
+  // 대화 기록 불러오기
+  Future<void> _loadChatHistory() async {
+    try {
+      final messages = await ChatStorageService.loadChatHistory();
+      if (mounted) {
+        setState(() {
+          _messages.addAll(messages);
+        });
+        _scrollToBottom();
+      }
+      
+      // 대화 기록이 없으면 초기 인사 메시지 추가
+      if (_messages.isEmpty) {
+        _addBotMessage('안녕하세요! 저는 ROUTY 앱의 AI 챗봇입니다. 👨‍👩‍👧‍👦\n\nADHD 아동의 루틴 관리와 행동 변화에 대해 전문적인 조언을 드릴 수 있어요. 아이의 최근 루틴 이행 데이터를 바탕으로 맞춤형 코칭을 제공해드립니다!');
+      }
+    } catch (e) {
+      print('Chat History Load Error: $e');
+      if (_messages.isEmpty) {
+        _addBotMessage('안녕하세요! 저는 ROUTY 앱의 AI 챗봇입니다. 👨‍👩‍👧‍👦\n\nADHD 아동의 루틴 관리와 행동 변화에 대해 전문적인 조언을 드릴 수 있어요. 아이의 최근 루틴 이행 데이터를 바탕으로 맞춤형 코칭을 제공해드립니다!');
+      }
+    }
+  }
+
   void _addUserMessage(String text) {
+    final message = ChatMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: text,
+      isUser: true,
+      timestamp: DateTime.now(),
+    );
+    
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUser: true,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(message);
     });
+    
+    // 메시지 저장
+    ChatStorageService.addMessage(message);
     _scrollToBottom();
   }
 
   void _addBotMessage(String text) {
+    final message = ChatMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: text,
+      isUser: false,
+      timestamp: DateTime.now(),
+    );
+    
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUser: false,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(message);
     });
+    
+    // 메시지 저장
+    ChatStorageService.addMessage(message);
     _scrollToBottom();
   }
 
@@ -76,39 +102,61 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     });
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  void _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || _isLoading) return;
 
     final message = _messageController.text.trim();
     _addUserMessage(message);
     _messageController.clear();
 
-    // 챗봇 응답 시뮬레이션
-    _simulateBotResponse(message);
+    // AI 응답 요청
+    await _getAIResponse(message);
   }
 
-  void _simulateBotResponse(String userMessage) {
-    // 간단한 응답 로직
-    String botResponse = '';
-    
-    if (userMessage.contains('루틴') || userMessage.contains('습관')) {
-      botResponse = '루틴을 만드는 것은 정말 좋은 습관이에요! 💪\n\n루틴 생성 페이지에서 다음을 설정할 수 있어요:\n• 루틴 이름\n• 루틴 내용\n• 알림 옵션 (몇 분 전에 알림을 받을지)\n\n꾸준히 실천하면 좋은 결과를 얻을 수 있을 거예요!';
-    } else if (userMessage.contains('도움') || userMessage.contains('help')) {
-      botResponse = '도움을 드릴게요! 😊\n\n저는 다음과 같은 도움을 드릴 수 있어요:\n• 루틴 관리 방법 안내\n• 습관 형성 팁\n• 앱 사용법 설명\n• 동기부여 메시지\n\n궁금한 것이 있으면 언제든 물어보세요!';
-    } else if (userMessage.contains('안녕') || userMessage.contains('hi')) {
-      botResponse = '안녕하세요! 👋\n\n오늘도 좋은 하루 되세요!\n루틴 관리는 잘 되고 있나요?';
-    } else if (userMessage.contains('감사') || userMessage.contains('고마워')) {
-      botResponse = '천만에요! 😄\n\n언제든 도움이 필요하시면 말씀해 주세요!\n함께 좋은 습관을 만들어봐요! 💪';
-    } else {
-      botResponse = '흥미로운 질문이네요! 🤔\n\n루틴 관리나 습관 형성에 대해 더 자세히 알고 싶으시다면 구체적으로 말씀해 주세요!\n\n예를 들어:\n• "루틴 만드는 방법 알려줘"\n• "습관 형성 팁 있어?"\n• "앱 사용법 설명해줘"';
-    }
-
-    // 1초 후 응답
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        _addBotMessage(botResponse);
-      }
+  Future<void> _getAIResponse(String userMessage) async {
+    setState(() {
+      _isLoading = true;
     });
+
+    try {
+      print('🤖 AI API 호출 시작: $userMessage');
+      final startTime = DateTime.now();
+      
+      // AI API 호출
+      final response = await AIChatService.sendMessageWithPersona(userMessage, _messages);
+      
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime);
+      print('✅ AI 응답 완료 (${duration.inMilliseconds}ms): $response');
+      
+      if (mounted) {
+        _addBotMessage(response);
+        
+        // 최근 50개 메시지만 유지 (메모리 절약)
+        await ChatStorageService.keepRecentMessages(50);
+      }
+    } catch (e) {
+      print('❌ AI Response Error: $e');
+      if (mounted) {
+        String errorMessage = '죄송해요. 잠시 문제가 생겼어요.';
+        
+        if (e.toString().contains('SocketException')) {
+          errorMessage = '인터넷 연결을 확인해주세요! 📶';
+        } else if (e.toString().contains('TimeoutException')) {
+          errorMessage = '응답이 너무 오래 걸려요. 다시 시도해보세요! ⏰';
+        } else if (e.toString().contains('FormatException')) {
+          errorMessage = '서버 응답에 문제가 있어요. 잠시 후 다시 시도해주세요! 🔧';
+        }
+        
+        _addBotMessage(errorMessage);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -119,7 +167,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         title: Row(
           children: [
             const Text(
-              '루티 챗봇', //챗봇 이름이 아닌, 실제 사용자가 선택한 캐릭터 이름이 나와야 함
+              'ROUTY AI 코칭', //ADHD 아동 부모를 위한 전문 챗봇
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -138,12 +186,20 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           },
         ),
         actions: [
+          // 테스트용 버튼
+          IconButton(
+            icon: const Icon(Ionicons.bug_outline, color: Colors.orange),
+            onPressed: () {
+              _addUserMessage('요즘 아이가 책을 30분씩 읽고 있는데, 이게 ADHD가 완화된 걸까요?');
+            },
+          ),
           IconButton(
             icon: const Icon(Ionicons.refresh_outline, color: Colors.black),
-            onPressed: () {
+            onPressed: () async {
+              await ChatStorageService.clearChatHistory();
               setState(() {
                 _messages.clear();
-                _addBotMessage('안녕하세요! 저는 루티(ROUTY) 챗봇입니다. 🎯\n루틴 관리에 대해 도움을 드릴 수 있어요!');
+                _addBotMessage('안녕하세요! 저는 ROUTY 앱의 AI 챗봇입니다. 👨‍👩‍👧‍👦\n\nADHD 아동의 루틴 관리와 행동 변화에 대해 전문적인 조언을 드릴 수 있어요. 아이의 최근 루틴 이행 데이터를 바탕으로 맞춤형 코칭을 제공해드립니다!');
               });
             },
           ),
@@ -161,8 +217,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
+              itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == _messages.length && _isLoading) {
+                  return _buildLoadingIndicator();
+                }
                 return _buildMessageBubble(_messages[index]);
               },
             ),
@@ -332,16 +391,90 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 ],
               ),
               child: IconButton(
-                onPressed: _sendMessage,
-                icon: const Icon(
-                  Ionicons.send,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                onPressed: _isLoading ? null : _sendMessage,
+                icon: _isLoading 
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(
+                      Ionicons.send,
+                      color: Colors.white,
+                      size: 20,
+                    ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primary,
+                width: 2,
+              ),
+            ),
+            child: const Icon(
+              Ionicons.chatbubble_outline,
+              color: AppColors.primary,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'AI가 답변을 생성하고 있어요...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

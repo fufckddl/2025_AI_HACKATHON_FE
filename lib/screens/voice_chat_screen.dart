@@ -17,6 +17,12 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   bool _isListening = false;
   List<Map<String, dynamic>> _conversationHistory = [];
 
+  // 타이핑 애니메이션 관련 변수
+  String _typingText = '';
+  bool _isTyping = false;
+  Timer? _typingTimer;
+  int _typingIndex = 0;
+
   // Speech to Text 관련 변수들
   late stt.SpeechToText _speech;
   bool _speechEnabled = false;
@@ -42,8 +48,10 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
 
   late AnimationController _characterAnimationController;
   late AnimationController _micAnimationController;
+  late AnimationController _talkingAnimationController;
   late Animation<double> _characterBounceAnimation;
   late Animation<double> _micPulseAnimation;
+  late Animation<double> _talkingPulseAnimation;
 
   @override
   void initState() {
@@ -68,6 +76,12 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       vsync: this,
     );
 
+    // 대화 애니메이션 컨트롤러 (AI가 말할 때 박스 크기 변화)
+    _talkingAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
     // 캐릭터 바운스 애니메이션
     _characterBounceAnimation = Tween<double>(
       begin: 0.0,
@@ -83,6 +97,15 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       end: 1.3,
     ).animate(CurvedAnimation(
       parent: _micAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
+    // 대화 펄스 애니메이션 (1.0 -> 1.08 -> 1.0)
+    _talkingPulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(
+      parent: _talkingAnimationController,
       curve: Curves.easeInOut,
     ));
 
@@ -105,6 +128,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   void dispose() {
     // 타이머 정리
     _silenceTimer?.cancel();
+    _typingTimer?.cancel();
 
     // Speech to Text 안전 정리 (예외 무시)
     try {
@@ -118,6 +142,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
 
     _characterAnimationController.dispose();
     _micAnimationController.dispose();
+    _talkingAnimationController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -193,14 +218,61 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
 
   void _addBotMessage(String message) {
     if (!mounted) return;
-    setState(() {
-      _conversationHistory.add({
-        'type': 'bot',
-        'message': message,
-        'timestamp': DateTime.now(),
-      });
+    
+    // 타이핑 애니메이션 시작
+    _startTypingAnimation(message);
+  }
+
+  // 타이핑 애니메이션 시작
+  void _startTypingAnimation(String fullText) {
+    _typingTimer?.cancel();
+    _typingText = '';
+    _typingIndex = 0;
+    _isTyping = true;
+
+    // 먼저 빈 메시지를 추가
+    _conversationHistory.add({
+      'type': 'bot',
+      'message': '',
+      'timestamp': DateTime.now(),
+      'isTyping': true,
     });
-    _scrollToEnd();
+
+    // 타이핑 애니메이션 시작
+    _typingTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      if (_typingIndex < fullText.length) {
+        setState(() {
+          _typingText = fullText.substring(0, _typingIndex + 1);
+          // 마지막 메시지 업데이트
+          _conversationHistory[_conversationHistory.length - 1] = {
+            'type': 'bot',
+            'message': _typingText,
+            'timestamp': _conversationHistory[_conversationHistory.length - 1]['timestamp'],
+            'isTyping': true,
+          };
+          _typingIndex++;
+        });
+        _scrollToEnd();
+      } else {
+        // 타이핑 완료
+        timer.cancel();
+        setState(() {
+          _isTyping = false;
+          // 타이핑 완료된 메시지로 업데이트
+          _conversationHistory[_conversationHistory.length - 1] = {
+            'type': 'bot',
+            'message': fullText,
+            'timestamp': _conversationHistory[_conversationHistory.length - 1]['timestamp'],
+          };
+        });
+        
+        // 타이핑 완료 시 펄스 애니메이션 중지
+        if (_talkingAnimationController.isAnimating) {
+          _talkingAnimationController.stop();
+          _talkingAnimationController.reset();
+        }
+      }
+    });
   }
 
   void _addUserMessage(String message) {
@@ -278,12 +350,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       print('stop 실패 (processUserSpeech): $e');
     }
 
-    // 마이크 애니메이션 중지
-    if (_micAnimationController.isAnimating) {
-      _micAnimationController.stop();
-      _micAnimationController.reset();
-    }
-
     // 사용자 음성 텍스트 확정
     _lastWords = _currentWords;
     final capturedText = _currentWords;
@@ -309,6 +375,11 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
 
     // 자동 재녹음: 사용자가 녹음 버튼으로 활성화했으면 재시작
     if (_shouldAutoListen) {
+      // 타이핑이 완료될 때까지 대기
+      while (_isTyping && mounted) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
       // 짧은 대기 후 재녹음 재개
       await Future.delayed(const Duration(milliseconds: 300));
       if (_shouldAutoListen && mounted) {
@@ -370,8 +441,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
             setState(() {
               _isListening = false;
             });
-            _micAnimationController.stop();
-            _micAnimationController.reset();
           }
         }
       } finally {
@@ -404,11 +473,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       _isWaitingForResponse = false;
     });
     print('_startListening: setState 완료, _isListening: $_isListening');
-
-    // 마이크 애니메이션 시작
-    if (!_micAnimationController.isAnimating) {
-      _micAnimationController.repeat(reverse: true);
-    }
 
     print('음성 인식 시작');
 
@@ -482,8 +546,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         setState(() {
           _isListening = false;
         });
-        _micAnimationController.stop();
-        _micAnimationController.reset();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('음성 인식 시작에 실패했습니다: $e'),
@@ -509,12 +571,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     // 침묵 타이머 취소
     _cancelSilenceTimer();
 
-    // 마이크 애니메이션 중지
-    if (_micAnimationController.isAnimating) {
-      _micAnimationController.stop();
-      _micAnimationController.reset();
-    }
-
     try {
       await _speech.stop();
     } catch (e) {
@@ -529,10 +585,20 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
 
   // AI 응답 생성 (동기식으로 기다리는 모사 함수)
   Future<void> _generateBotResponseAsync(String userMessage) async {
+    // 대화 애니메이션 시작 (AI가 말하고 있다는 신호)
+    if (!_talkingAnimationController.isAnimating) {
+      _talkingAnimationController.repeat(reverse: true);
+    } else {
+      // 이미 애니메이션이 실행 중이면 다시 시작
+      _talkingAnimationController.repeat(reverse: true);
+    }
+    
     // 실제 AI 호출 자리. 여기선 시뮬레이션으로 1초 대기 후 응답 추가.
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
     _generateBotResponse(userMessage);
+    
+    // 타이핑 애니메이션이 완료될 때까지 펄스 애니메이션 유지 (타이핑 완료 시 중지됨)
   }
 
   void _generateBotResponse(String userMessage) {
@@ -552,7 +618,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       botResponse = '천만에요! 언제든지 도와드릴게요.';
     } else {
       botResponse =
-          '죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!';
+          '죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!\n죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!\n죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!\n죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!';
     }
 
     _addBotMessage(botResponse);
@@ -618,34 +684,50 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 캐릭터 이미지
+          // 캐릭터 이미지 (AI가 말할 때 펄스 효과)
           AnimatedBuilder(
-            animation: _characterBounceAnimation,
+            animation: Listenable.merge([_characterBounceAnimation, _talkingPulseAnimation]),
             builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, _characterBounceAnimation.value),
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: AppColors.primary,
-                      width: 3,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+              return Transform.scale(
+                scale: _isProcessingResponse || _isWaitingForResponse || _isTyping
+                    ? _talkingPulseAnimation.value 
+                    : 1.0,
+                child: Transform.translate(
+                  offset: Offset(0, _characterBounceAnimation.value),
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(
+                        color: AppColors.primary,
+                        width: 3,
                       ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '🌱',
-                      style: TextStyle(fontSize: 80),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(97),
+                      child: Image.asset(
+                        'images/bear.png',
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text(
+                              '🌱',
+                              style: TextStyle(fontSize: 80),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -791,6 +873,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     final isBot = message['type'] == 'bot';
     final messageText = message['message'] as String;
     final timestamp = message['timestamp'] as DateTime;
+    final isTyping = message['isTyping'] == true;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -805,8 +888,19 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Center(
-                child: Text('🌱', style: TextStyle(fontSize: 16)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'images/bear.png',
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Text('🌱', style: TextStyle(fontSize: 16)),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -821,12 +915,28 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    messageText,
-                    style: TextStyle(
-                      color: isBot ? Colors.black87 : Colors.white,
-                      fontSize: 14,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        messageText,
+                        style: TextStyle(
+                          color: isBot ? Colors.black87 : Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      // 타이핑 중일 때 커서 표시
+                      if (isTyping)
+                        Container(
+                          width: 2,
+                          height: 16,
+                          margin: const EdgeInsets.only(left: 2),
+                          decoration: BoxDecoration(
+                            color: isBot ? Colors.black87 : Colors.white,
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -924,37 +1034,29 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       child: Column(
         children: [
           // 마이크 버튼
-          AnimatedBuilder(
-            animation: _micPulseAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _micPulseAnimation.value,
-                child: GestureDetector(
-                  onTap: _isListening ? _stopListening : _startListening,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: _isListening ? Colors.red : AppColors.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isListening ? Colors.red : AppColors.primary)
-                              .withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      _isListening ? Ionicons.stop : Ionicons.mic,
-                      color: Colors.white,
-                      size: 32,
-                    ),
+          GestureDetector(
+            onTap: _isListening ? _stopListening : _startListening,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _isListening ? Colors.red : AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isListening ? Colors.red : AppColors.primary)
+                        .withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
-                ),
-              );
-            },
+                ],
+              ),
+              child: Icon(
+                _isListening ? Ionicons.stop : Ionicons.mic,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
           ),
 
           const SizedBox(height: 16),

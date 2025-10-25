@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'screens/home.dart';
+import 'screens/splash_screen.dart';
 import 'constants/app_colors.dart';
 import 'auth/auth_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 알림 서비스 초기화
+  await NotificationService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -45,8 +52,9 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const AuthScreen(),
+      home: const SplashScreen(),
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/home': (context) => const HomeScreen(),
         '/auth': (context) => const AuthScreen(),
       },

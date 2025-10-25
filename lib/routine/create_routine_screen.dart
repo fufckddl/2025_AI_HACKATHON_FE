@@ -5,6 +5,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../models/routine_model.dart';
 import '../widgets/custom_button.dart';
+import '../services/notification_service.dart';
 
 class CreateRoutineScreen extends StatefulWidget {
   final RoutineModel? routineToEdit;
@@ -54,6 +55,11 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     _contentController.dispose();
     _dateController.dispose();
     _timeController.dispose();
+    // 옵션 컨트롤러들도 정리
+    for (var option in _options) {
+      option['minutes'].dispose();
+      option['text'].dispose();
+    }
     super.dispose();
   }
 
@@ -73,6 +79,135 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
       _options[index]['text'].dispose();
       _options.removeAt(index);
     });
+  }
+
+  void _handleAIRoutineRecommendation() async {
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  color: AppColors.primary,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'AI가 아이의 패턴을 분석하고 있어요...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // AI 분석 시뮬레이션 (2초 딜레이)
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // 다이얼로그 닫기
+    Navigator.of(context).pop();
+
+    // AI 추천 데이터 (더미 데이터)
+    final recommendedData = _generateAIRoutineRecommendation();
+
+    // 추천 결과를 입력 필드에 채우기
+    setState(() {
+      _nameController.text = recommendedData['name'];
+      _contentController.text = recommendedData['content'];
+      
+      // 날짜와 시간은 현재 시간으로 설정
+      final now = DateTime.now();
+      _dateController.text = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      _timeController.text = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      
+      // 기존 옵션 정리
+      for (var option in _options) {
+        option['minutes'].dispose();
+        option['text'].dispose();
+      }
+      _options.clear();
+      
+      // AI 추천 옵션 추가
+      for (var optionData in recommendedData['options']) {
+        final minutesController = TextEditingController();
+        final textController = TextEditingController();
+        
+        minutesController.text = optionData['minutes'];
+        textController.text = optionData['text'];
+        
+        _options.add({
+          'id': DateTime.now().millisecondsSinceEpoch,
+          'minutes': minutesController,
+          'text': textController,
+        });
+      }
+    });
+
+    // 성공 메시지 표시
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Ionicons.checkmark_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('AI가 아이에게 맞는 루틴을 추천했어요!'),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Map<String, dynamic> _generateAIRoutineRecommendation() {
+    // 더미 데이터: 아이의 루틴 패턴을 분석하여 맞춤형 루틴 추천
+    // TODO: 실제로는 아이의 루틴 이행 데이터와 AI 챗봇 대화 내용을 분석하여 추천
+    
+    final now = DateTime.now();
+    final recommendations = [
+      {
+        'name': '오후 집중 독서 시간',
+        'content': '아이의 독서 습관이 좋아지고 있어요! 오후 2시부터 30분 동안 책을 읽으며 집중력을 길러봐요. 독서 후에는 작은 보상을 받을 수 있어요!',
+        'options': [
+          {'minutes': '5', 'text': '책 읽기 준비하세요! 편안한 장소를 찾아보아요.'},
+          {'minutes': '30', 'text': '책 읽기 시간이 끝났어요! 잘했어요!'},
+        ],
+      },
+      {
+        'name': '아침 기상 루틴',
+        'content': '일찍 일어나는 습관을 만들어요! 매일 같은 시간에 일어나서 세수를 하고, 옷을 입는 순서대로 정해보아요. 완료하면 좋아하는 음식을 먹을 수 있어요!',
+        'options': [
+          {'minutes': '10', 'text': '잠에서 깨어나세요! 햇살이 반겨줘요.'},
+          {'minutes': '5', 'text': '세수하고 옷 입을 시간이에요!'},
+        ],
+      },
+      {
+        'name': '저녁 정리 시간',
+        'content': '하루를 마무리하는 루틴이에요! 10분 동안 장난감을 정리하고, 내일 입을 옷을 준비해요. 정리 완료하면 부모님과 함께 이야기할 수 있어요!',
+        'options': [
+          {'minutes': '15', 'text': '정리 시작할 시간이에요! 장난감 친구들이 집에 가고 싶어 해요.'},
+          {'minutes': '5', 'text': '마지막 정리 시간! 깔끔하게 마무리해요.'},
+        ],
+      },
+    ];
+
+    // 현재 시간에 따라 다른 루틴 추천
+    final recommendationIndex = now.hour % 3;
+    return recommendations[recommendationIndex];
   }
 
 
@@ -102,6 +237,28 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             Navigator.pop(context);
           },
         ),
+        actions: [
+          // AI 루틴 추천 버튼 (수정 모드가 아닐 때만 표시)
+          if (widget.routineToEdit == null)
+            IconButton(
+              icon: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Ionicons.sparkles, color: AppColors.primary, size: 20),
+                  SizedBox(width: 4),
+                  Text(
+                    'AI 추천',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              onPressed: _handleAIRoutineRecommendation,
+            ),
+        ],
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.white,
           statusBarIconBrightness: Brightness.dark,
@@ -412,21 +569,32 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         updatedAt: DateTime.now(),
       );
 
+      // 시간 파싱
+      final timeParts = _timeController.text.split(':');
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
+
       if (widget.routineToEdit != null) {
         // 수정 모드: 기존 루틴 업데이트
         // TODO: API 호출로 루틴 수정 처리
         // await ApiService().put('/routines/${widget.routineToEdit!.id}', routine.toJson());
         
-        // 임시로 루틴 객체를 사용하여 수정 시뮬레이션
-        routine.toString(); // 변수 사용으로 경고 제거
+        // 기존 알림 취소
+        await NotificationService().cancelNotification(widget.routineToEdit!.id);
       } else {
         // 생성 모드: 새 루틴 생성
         // TODO: API 호출로 루틴 생성 처리
         // await ApiService().post('/routines', routine.toJson());
-        
-        // 임시로 루틴 객체를 사용하여 생성 시뮬레이션
-        routine.toString(); // 변수 사용으로 경고 제거
       }
+      
+      // 매일 특정 시간에 알림 예약
+      final notificationId = widget.routineToEdit?.id ?? routine.id;
+      await NotificationService().scheduleDailyNotification(
+        id: notificationId,
+        title: '루틴 시간입니다! 🎯',
+        body: routine.name,
+        time: Time(hour, minute),
+      );
       
       await Future.delayed(const Duration(seconds: 2)); // 임시 딜레이
 
@@ -525,8 +693,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                 flex: 5,
                 child: _buildTextField(
                   controller: option['text'],
-                  label: 'AI가 읽을 텍스트',
-                  hint: '알림 텍스트를 입력하세요',
+                  label: '알림 텍스트',
+                  hint: '알림 텍스트를 입력하세요. (최대 100자)',
                   icon: Ionicons.chatbubble_outline,
                   validator: (value) {
                     // 옵션 필드는 선택사항이므로 유효성 검사 제거

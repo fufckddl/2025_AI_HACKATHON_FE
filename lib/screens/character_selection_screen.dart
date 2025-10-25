@@ -21,7 +21,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
       id: 1,
       name: '루티',
       description: '활발하고 에너지가 넘치는 캐릭터',
-      emoji: '🤖',
+      emoji: 'images/bear.png',
       color: AppColors.primary,
       personality: '활발함',
       age: '5세',
@@ -241,7 +241,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // 캐릭터 이모지
+                      // 캐릭터 이미지/이모지
                       Container(
                         width: 100,
                         height: 100,
@@ -253,11 +253,33 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                             width: 3,
                           ),
                         ),
-                        child: Center(
-                          child: Text(
-                            character.emoji,
-                            style: const TextStyle(fontSize: 50),
-                          ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(47),
+                          child: character.isImagePath
+                              ? Image.asset(
+                                  character.emoji.startsWith('assets/') 
+                                      ? 'assets/${character.emoji}'
+                                      : character.emoji,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // 이미지 로드 실패 시 이모지로 대체
+                                    print('이미지 로드 실패: ${character.emoji}');
+                                    return Center(
+                                      child: Text(
+                                        '🤖',
+                                        style: const TextStyle(fontSize: 50),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Center(
+                                  child: Text(
+                                    character.emoji,
+                                    style: const TextStyle(fontSize: 50),
+                                  ),
+                                ),
                         ),
                       ),
                       
@@ -413,11 +435,31 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                   color: selectedCharacter.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(25),
                 ),
-                child: Center(
-                  child: Text(
-                    selectedCharacter.emoji,
-                    style: const TextStyle(fontSize: 24),
-                  ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: selectedCharacter.isImagePath
+                      ? Image.asset(
+                          selectedCharacter.emoji.startsWith('assets/') 
+                              ? selectedCharacter.emoji
+                              : selectedCharacter.emoji,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Text(
+                                '🤖',
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Text(
+                            selectedCharacter.emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -479,10 +521,33 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              _characters[_currentIndex].emoji,
-              style: const TextStyle(fontSize: 20),
-            ),
+            _characters[_currentIndex].isImagePath
+                ? Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        _characters[_currentIndex].emoji.startsWith('images/') 
+                            ? 'assets/${_characters[_currentIndex].emoji}'
+                            : _characters[_currentIndex].emoji,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Text(
+                            '🤖',
+                            style: TextStyle(fontSize: 20),
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                : Text(
+                    _characters[_currentIndex].emoji,
+                    style: const TextStyle(fontSize: 20),
+                  ),
             const SizedBox(width: 8),
             const Text(
               '이 캐릭터와 함께하기',
@@ -508,7 +573,27 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
         return AlertDialog(
           title: Row(
             children: [
-              Text(selectedCharacter.emoji, style: const TextStyle(fontSize: 24)),
+              selectedCharacter.isImagePath
+                  ? Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          selectedCharacter.emoji.startsWith('images/') 
+                              ? 'assets/${selectedCharacter.emoji}'
+                              : selectedCharacter.emoji,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Text('🤖', style: TextStyle(fontSize: 24));
+                          },
+                        ),
+                      ),
+                    )
+                  : Text(selectedCharacter.emoji, style: const TextStyle(fontSize: 24)),
               const SizedBox(width: 8),
               Text(selectedCharacter.name),
             ],
@@ -546,7 +631,7 @@ class CharacterData {
   final int id;
   final String name;
   final String description;
-  final String emoji;
+  final String emoji; // emoji 또는 imagePath (이미지 경로도 가능)
   final Color color;
   final String personality;
   final String age;
@@ -560,4 +645,7 @@ class CharacterData {
     required this.personality,
     required this.age,
   });
+  
+  // 이미지 경로인지 이모지인지 확인
+  bool get isImagePath => emoji.endsWith('.png') || emoji.endsWith('.jpg') || emoji.endsWith('.jpeg') || emoji.startsWith('images/') || emoji.startsWith('assets/');
 }
