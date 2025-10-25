@@ -54,7 +54,7 @@ lib/
 1. Flutter SDK 설치
 2. 프로젝트 클론
 3. 의존성 설치: `flutter pub get`
-4. 앱 실행: `flutter run`
+4. 앱 실행: `flutter run -d web-server --web-port 8080`
 
 ## 개발 환경
 
