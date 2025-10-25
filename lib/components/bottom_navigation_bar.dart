@@ -4,6 +4,7 @@ import '../constants/app_colors.dart';
 import '../screens/home.dart';
 import '../screens/character_selection_screen.dart';
 import '../screens/voice_chat_screen.dart';
+import '../screens/chatbot_screen.dart';
 import '../routine/list_routine_screen.dart';
 import '../info/myInfo.dart';
 
@@ -56,14 +57,21 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 builder: (context) => const HomeScreen(),
               ),
             );
-          } else if (index == 3) { // 루틴 탭
+          } else if (index == 3) { // 챗봇 탭
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ChatbotScreen(),
+              ),
+            );
+          } else if (index == 4) { // 루틴 탭
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => const ListRoutineScreen(),
               ),
             );
-          } else if (index == 4) { // 마이페이지 탭
+          } else if (index == 5) { // 마이페이지 탭
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -85,6 +93,10 @@ class CustomBottomNavigationBar extends StatelessWidget {
             icon: Icon(Ionicons.home_outline),
             activeIcon: Icon(Ionicons.home),
             label: '홈',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Ionicons.chatbubble_outline),
+            label: '챗봇',
           ),
           BottomNavigationBarItem(
             icon: Icon(Ionicons.calendar_outline),

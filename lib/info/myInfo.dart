@@ -83,7 +83,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 4),
+      bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 5),
     );
   }
 

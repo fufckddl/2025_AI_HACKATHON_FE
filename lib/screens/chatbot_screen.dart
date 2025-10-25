@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import '../constants/app_colors.dart';
+import '../components/bottom_navigation_bar.dart';
 
 class ChatMessage {
   final String text;
@@ -171,6 +172,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           _buildMessageInput(),
         ],
       ),
+      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 3),
     );
   }
 
