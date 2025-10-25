@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
 import '../models/user_model.dart';
 import '../components/bottom_navigation_bar.dart';
 import '../screens/character_selection_screen.dart';
@@ -900,15 +901,48 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             ),
             TextButton(
               child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+                await _handleLogout();
               },
             ),
           ],
         );
       },
     );
+  }
+  
+  Future<void> _handleLogout() async {
+    try {
+      // SharedPreferences에서 모든 사용자 관련 데이터 삭제
+      final prefs = await SharedPreferences.getInstance();
+      
+      // JWT 토큰 삭제
+      await prefs.remove(AppConstants.userTokenKey);
+      
+      // 유저 정보 삭제
+      await prefs.remove(AppConstants.userInfoKey);
+      await prefs.remove('user_id');
+      await prefs.remove('user_name');
+      await prefs.remove('email');
+      
+      // ApiService에서도 토큰 제거
+      ApiService().removeAuthToken();
+      
+      print('✅ 로그아웃 완료 - JWT 토큰 및 사용자 정보 삭제됨');
+      
+      // Auth 화면으로 이동 (모든 이전 라우트 제거)
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+      }
+    } catch (e) {
+      print('❌ 로그아웃 처리 중 오류 발생: $e');
+      
+      // 오류가 발생해도 Auth 화면으로 이동
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+      }
+    }
   }
 
   void _showDeleteAccountDialog() {

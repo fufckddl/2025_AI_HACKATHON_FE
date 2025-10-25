@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_tts/flutter_tts.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/api_service.dart';
@@ -34,6 +36,10 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   String _lastWords = '';
   String _currentWords = '';
   String _selectedLocale = '';
+  
+  // Text to Speech 관련 변수들
+  FlutterTts _flutterTts = FlutterTts();
+  bool _isSpeaking = false;
 
   // 스크롤 컨트롤러 추가
   late ScrollController _scrollController;
@@ -70,12 +76,16 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     // 스크롤 컨트롤러 초기화
     _scrollController = ScrollController();
 
-    // 선택된 캐릭터 로드
+    // 선택된 캐릭터 로드 및 이전 대화 기록 불러오기
     _loadSelectedCharacter();
+    _loadDialogueHistory();
 
     // Speech to Text 초기화
     _speech = stt.SpeechToText();
     _initSpeech();
+    
+    // Text to Speech 초기화
+    _initTTS();
 
     // 캐릭터 애니메이션 컨트롤러
     _characterAnimationController = AnimationController(
@@ -147,12 +157,98 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     try {
       _speech.cancel();
     } catch (_) {}
+    
+    // TTS 정리
+    try {
+      _stopSpeaking();
+      _flutterTts.stop();
+    } catch (_) {}
 
     _characterAnimationController.dispose();
     _micAnimationController.dispose();
     _talkingAnimationController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 이전 대화 기록 불러오기
+  Future<void> _loadDialogueHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+      
+      if (userId == null) {
+        print('❌ 사용자 ID가 없습니다.');
+        return;
+      }
+      
+      // DB에서 최근 대화 기록 조회
+      final response = await ApiService().get('/voice/dialogue/$userId');
+      
+      if (response['result'] == 'success' && response['dialogues'] != null) {
+        final dialogues = response['dialogues'] as List<dynamic>;
+        
+        // 시간순으로 정렬 (오래된 것부터)
+        dialogues.sort((a, b) => (a['created_at'] as String).compareTo(b['created_at'] as String));
+        
+        if (!mounted) return;
+        
+        setState(() {
+          _conversationHistory = dialogues.map((dialogue) {
+            return {
+              'type': dialogue['sender_type'] == 'user' ? 'user' : 'bot',
+              'message': dialogue['message_text'] ?? '',
+              'timestamp': DateTime.parse(dialogue['created_at']),
+            };
+          }).toList();
+        });
+        
+        print('✅ 이전 대화 기록 ${dialogues.length}개 불러옴');
+        
+        // 대화 기록이 없으면 초기 메시지 추가
+        if (dialogues.isEmpty && mounted) {
+          _addBotMessage('안녕~ 오늘 학교는 잘 다녀왔어 ?');
+        }
+      } else {
+        // 대화 기록이 없으면 초기 메시지 추가
+        if (mounted) {
+          _addBotMessage('안녕~ 오늘 학교는 잘 다녀왔어 ?');
+        }
+      }
+    } catch (e) {
+      print('❌ 대화 기록 로드 실패: $e');
+    }
+  }
+  
+  // 대화 저장
+  Future<void> _saveDialogue(String senderType, String message) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+      
+      if (userId == null || _selectedCharacterId == null) {
+        print('❌ 사용자 ID 또는 캐릭터 ID가 없습니다.');
+        return;
+      }
+      
+      // DB에 대화 저장
+      final response = await ApiService().post(
+        '/voice/dialogue',
+        {
+          'character_id': int.parse(_selectedCharacterId!),
+          'sender_type': senderType,
+          'message_text': message,
+        },
+      );
+      
+      if (response['result'] == 'success') {
+        print('✅ 대화 저장 완료: ${response['dialogue_id']}');
+      } else {
+        print('❌ 대화 저장 실패: ${response['msg']}');
+      }
+    } catch (e) {
+      print('❌ 대화 저장 중 오류: $e');
+    }
   }
 
   // 선택된 캐릭터 로드 (DB에서 가져오기)
@@ -205,11 +301,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         _setCharacterInfo(characterIdStr);
         
         print('✅ 선택된 캐릭터 ID: $characterIdStr');
-        
-        // 초기 메시지 추가
-        if (mounted) {
-          _addBotMessage('안녕하세요! 무엇을 도와드릴까요?');
-        }
       } else {
         print('❌ 사용자 정보 조회 실패: ${response['msg']}');
         if (mounted) {
@@ -402,6 +493,111 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     }
   }
 
+  // TTS 초기화
+  Future<void> _initTTS() async {
+    try {
+      // TTS 언어 설정 (한국어)
+      await _flutterTts.setLanguage("ko-KR");
+      
+      // 사용 가능한 음성 확인
+      var voices = await _flutterTts.getVoices;
+      if (voices != null && voices.isNotEmpty) {
+        print('🎤 사용 가능한 TTS 음성 모델:');
+        for (var voice in voices) {
+          print('  - ${voice["name"]} (${voice["locale"]})');
+        }
+        
+        // Sandy 음성 모델 찾기 (대소문자 구분 없이)
+        var sandyVoice;
+        try {
+          sandyVoice = voices.firstWhere(
+            (voice) => voice["name"]?.toString().toLowerCase().contains("sandy") ?? false,
+            orElse: () => voices.first,
+          );
+          
+          await _flutterTts.setVoice(sandyVoice);
+          print('✅ TTS 음성 모델 설정: ${sandyVoice["name"]} (${sandyVoice["locale"]})');
+        } catch (e) {
+          print('⚠️ Sandy 음성 모델을 찾을 수 없습니다. 기본 음성을 사용합니다.');
+          print('✅ 현재 사용 중인 기본 음성 모델: ${voices.first["name"]}');
+        }
+      } else {
+        print('ℹ️ 플랫폼에서 사용자 정의 음성 선택이 지원되지 않습니다.');
+      }
+      
+      // TTS 속도 설정 (0.0 ~ 1.0) - 현재 0.75 (기존 0.5의 1.5배)
+      await _flutterTts.setSpeechRate(0.75);
+      
+      // TTS 음량 설정 (0.0 ~ 1.0)
+      await _flutterTts.setVolume(1.0);
+      
+      // TTS 피치 설정 (0.0 ~ 2.0)
+      await _flutterTts.setPitch(1.0);
+      
+      // TTS 완료 콜백
+      _flutterTts.setCompletionHandler(() {
+        if (mounted) {
+          setState(() {
+            _isSpeaking = false;
+          });
+        }
+        print('TTS 완료');
+      });
+      
+      // TTS 시작 콜백
+      _flutterTts.setStartHandler(() {
+        if (mounted) {
+          setState(() {
+            _isSpeaking = true;
+          });
+        }
+        print('TTS 시작');
+      });
+      
+      // TTS 오류 콜백
+      _flutterTts.setErrorHandler((msg) {
+        if (mounted) {
+          setState(() {
+            _isSpeaking = false;
+          });
+        }
+        print('TTS 오류: $msg');
+      });
+      
+      print('✅ TTS 초기화 완료');
+    } catch (e) {
+      print('❌ TTS 초기화 실패: $e');
+    }
+  }
+  
+  // TTS로 텍스트를 음성으로 변환하여 재생
+  Future<void> _speakText(String text) async {
+    try {
+      if (text.isEmpty) return;
+      
+      // 이모지 제거 (TTS에서 이모지는 읽히지 않음)
+      String cleanText = text.replaceAll(RegExp(r'[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]', unicode: true), '');
+      
+      await _flutterTts.speak(cleanText);
+    } catch (e) {
+      print('❌ TTS 재생 실패: $e');
+    }
+  }
+  
+  // TTS 중지
+  Future<void> _stopSpeaking() async {
+    try {
+      await _flutterTts.stop();
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
+    } catch (e) {
+      print('❌ TTS 중지 실패: $e');
+    }
+  }
+
   void _addBotMessage(String message) {
     if (!mounted) return;
     
@@ -457,11 +653,17 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
           _talkingAnimationController.stop();
           _talkingAnimationController.reset();
         }
+        
+        // DB에 AI 메시지 저장
+        _saveDialogue('ai', fullText);
+        
+        // 타이핑 완료 후 TTS로 음성 재생
+        _speakText(fullText);
       }
     });
   }
 
-  void _addUserMessage(String message) {
+  void _addUserMessage(String message) async {
     if (!mounted) return;
     setState(() {
       _conversationHistory.add({
@@ -471,6 +673,9 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       });
     });
     _scrollToEnd();
+    
+    // DB에 사용자 메시지 저장
+    await _saveDialogue('user', message);
   }
 
   void _scrollToEnd() {
@@ -849,7 +1054,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     }
   }
 
-  // AI 응답 생성 (동기식으로 기다리는 모사 함수)
+  // AI 응답 생성 (Flowise OpenAI 사용)
   Future<void> _generateBotResponseAsync(String userMessage) async {
     // 대화 애니메이션 시작 (AI가 말하고 있다는 신호)
     if (!_talkingAnimationController.isAnimating) {
@@ -859,36 +1064,93 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       _talkingAnimationController.repeat(reverse: true);
     }
     
-    // 실제 AI 호출 자리. 여기선 시뮬레이션으로 1초 대기 후 응답 추가.
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    _generateBotResponse(userMessage);
-    
-    // 타이핑 애니메이션이 완료될 때까지 펄스 애니메이션 유지 (타이핑 완료 시 중지됨)
-  }
-
-  void _generateBotResponse(String userMessage) {
-    String botResponse = '';
-
-    final lower = userMessage.toLowerCase();
-    if (lower.contains('안녕') || lower.contains('hello')) {
-      botResponse = '안녕하세요! 루티입니다. 무엇을 도와드릴까요?';
-    } else if (lower.contains('운동') || lower.contains('루틴')) {
-      botResponse =
-          '오늘은 아침 운동과 저녁 스트레칭을 추천드려요. 어떤 운동을 하고 싶으신가요?';
-    } else if (lower.contains('시간') || lower.contains('언제')) {
-      botResponse = '지금은 ${DateTime.now().hour}시 ${DateTime.now().minute}분입니다.';
-    } else if (lower.contains('날씨')) {
-      botResponse = '오늘 날씨는 맑습니다. 운동하기 좋은 날이에요!';
-    } else if (lower.contains('감사') || lower.contains('고마워')) {
-      botResponse = '천만에요! 언제든지 도와드릴게요.';
-    } else {
-      botResponse =
-          '죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!\n죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!\n죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!\n죄송해요. 아직 그 질문에 대한 답변을 드릴 수 없어요. 다른 질문을 해주세요!';
+    // Flowise OpenAI API 호출
+    try {
+      final response = await _callFlowiseAPI(userMessage);
+      if (!mounted) return;
+      _addBotMessage(response);
+    } catch (e) {
+      print('❌ AI 응답 생성 실패: $e');
+      if (!mounted) return;
+      _addBotMessage('미안해, 잠깐 문제가 생겼어. 다시 말해줄 수 있니? 🤔');
     }
-
-    _addBotMessage(botResponse);
   }
+  
+  // Flowise API 호출
+  Future<String> _callFlowiseAPI(String userMessage) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+      
+      // 이전 대화 맥락 구성 (최근 5개 메시지)
+      final recentHistory = _conversationHistory.length > 5 
+          ? _conversationHistory.sublist(_conversationHistory.length - 5)
+          : _conversationHistory;
+      
+      String context = '';
+      for (var msg in recentHistory) {
+        context += '${msg['type'] == 'user' ? '사용자' : 'AI'}: ${msg['message']}\n';
+      }
+      
+      // ADHD 아동을 위한 AI 페르소나 프롬프트
+      const String systemPrompt = '''
+당신은 ROUTY 앱의 친근한 AI 친구예요. 만 6-12세 ADHD 아동과 대화하는 상냥하고 따뜻한 캐릭터입니다.
+
+[상호작용 원칙]
+1. **짧고 명확한 문장**: 한 번에 하나의 생각만 전달해요
+2. **긍정적 강화**: 아이의 노력을 즉시 칭찬하고 격려해요
+3. **공감 표현**: 아이의 감정을 이해하고 들어줘요
+4. **루틴 동기부여**: 재미있고 긍정적인 방법으로 루틴을 완수하도록 도와요
+5. **즉각적 보상**: 작은 성공에도 크게 칭찬해요
+
+[대화 스타일]
+- 친근하고 재미있게 대화해요
+- 이모지를 자연스럽게 사용해요 😊
+- 아이의 수준에 맞는 쉬운 단어를 사용해요
+- 명령보다는 제안과 질문으로 말해요
+- 실수해도 괜찮다고 안심시켜줘요
+
+[루틴 관리]
+- 오늘의 루틴 완료를 격려해요
+- 작은 단계로 나누어 도와줘요
+- 완료 시 큰 칭찬과 보상 약속을 해요
+- 다음 단계를 명확히 알려줘요
+
+[응답 예시]
+- "와! 정말 대단해! 👏"
+- "한 가지씩 차근차근 해보자! ⭐"
+- "괜찮아, 천천히 해도 돼! 💕"
+- "너는 충분히 잘하고 있어! 🌟"
+
+앞으로의 대화를 시작해요:
+''';
+
+      final requestBody = {
+        'question': systemPrompt + context + '사용자: $userMessage\nAI:',
+      };
+
+      final response = await http.post(
+        Uri.parse('https://cloud.flowiseai.com/api/v1/prediction/541c7c9c-023f-4a34-a755-c2f4aaac0b53'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['text'] ?? '흠, 그거 재밌다! 🎈';
+      } else {
+        print('❌ Flowise API Error: ${response.statusCode} - ${response.body}');
+        return '미안해, 다시 말해줄 수 있니? 🤔';
+      }
+    } catch (e) {
+      print('❌ Flowise API 호출 실패: $e');
+      rethrow;
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {

@@ -186,13 +186,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           },
         ),
         actions: [
-          // 테스트용 버튼
-          IconButton(
-            icon: const Icon(Ionicons.bug_outline, color: Colors.orange),
-            onPressed: () {
-              _addUserMessage('요즘 아이가 책을 30분씩 읽고 있는데, 이게 ADHD가 완화된 걸까요?');
-            },
-          ),
           IconButton(
             icon: const Icon(Ionicons.refresh_outline, color: Colors.black),
             onPressed: () async {
