@@ -62,3 +62,58 @@ lib/
 - Dart 3.x
 - iOS 16 Pro 시뮬레이터 지원
 - iPhone 최적화 UI/UX
+
+---
+## 팀원 소개
+
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/fufckddl" target="_blank">
+<img src="https://avatars.githubusercontent.com/fufckddl" width="60px;" alt="김태현"/><br />
+<b>이창렬</b>
+</a><br/>
+팀장 / 프론트
+</td>
+<td align="center">
+<a href="https://github.com/minjini-sys" target="_blank">
+<img src="https://avatars.githubusercontent.com/minjini-sys" width="60px;" alt="최희우"/><br />
+<b>김민진</b>
+</a><br/>
+백엔드
+</td>
+<td align="center">
+<a href="https://github.com/rhehdud" target="_blank">
+<img src="https://avatars.githubusercontent.com/rhehdud" width="60px;" alt="김사랑"/><br />
+<b>고도영</b>
+</a><br/>
+백엔드
+</td>
+<td align="center">
+<a href="https://github.com/ujieeemin" target="_blank">
+<img src="https://avatars.githubusercontent.com/ujieeemin" width="60px;" alt="유한솔"/><br />
+<b>유지민</b>
+</a><br/>
+기획 / 자료
+</td>
+<td align="center">
+<a href="https://github.com/zzfbwoals" target="_blank">
+<img src="https://avatars.githubusercontent.com/zzfbwoals" width="60px;" alt="류재민"/><br />
+<b>류재민</b>
+</a><br/>
+기획 / 자료
+</td>
+</tr>
+</table>
+
+---
+
+## 프로젝트 링크
+
+- [Notion 기획서 (MVP)](https://www.notion.so/2025-AI-4-ROUTY-296087d76afe80128dcee38b384e2962)  
+- [GitHub FE 리포지토리](https://github.com/zzfbwoals/2025_AI_HACKATHON_FE)  
+- [GitHub BE 리포지토리](https://github.com/zzfbwoals/2025_AI_HACKATHON_BE)
+
+---
+
+© 2025 AI HACKATHON Team 4
