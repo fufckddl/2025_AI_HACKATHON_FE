@@ -4,7 +4,7 @@ class AppConstants {
   static const String appVersion = '1.0.0';
   
   // API 관련
-  static const String baseUrl = 'https://api.example.com';
+  static const String baseUrl = 'http://192.168.100.107:5001';  // 백엔드 Flask 서버 (로컬 네트워크 IP)
   static const int apiTimeout = 30000; // 30초
   
   // UI 관련

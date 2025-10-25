@@ -6,6 +6,7 @@ class RoutineModel {
   final String content; // 내용
   final DateTime createdAt; // 생성일자
   final DateTime updatedAt; // 업데이트일자
+  final DateTime routineTime; // 루틴 실행 시간
 
   RoutineModel({
     required this.id,
@@ -15,6 +16,7 @@ class RoutineModel {
     required this.content,
     required this.createdAt,
     required this.updatedAt,
+    required this.routineTime,
   });
 
   factory RoutineModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class RoutineModel {
       content: json['routine_content'] ?? '',
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      routineTime: DateTime.parse(json['routine_time'] ?? DateTime.now().toIso8601String()),
     );
   }
 
@@ -38,6 +41,7 @@ class RoutineModel {
       'routine_content': content,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'routine_time': routineTime.toIso8601String(),
     };
   }
 
@@ -49,6 +53,7 @@ class RoutineModel {
     String? content,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? routineTime,
   }) {
     return RoutineModel(
       id: id ?? this.id,
@@ -58,6 +63,7 @@ class RoutineModel {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      routineTime: routineTime ?? this.routineTime,
     );
   }
 
@@ -71,7 +77,8 @@ class RoutineModel {
         other.cycle == cycle &&
         other.content == content &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        other.routineTime == routineTime;
   }
 
   @override
@@ -82,11 +89,12 @@ class RoutineModel {
         cycle.hashCode ^
         content.hashCode ^
         createdAt.hashCode ^
-        updatedAt.hashCode;
+        updatedAt.hashCode ^
+        routineTime.hashCode;
   }
 
   @override
   String toString() {
-    return 'RoutineModel(id: $id, userId: $userId, name: $name, cycle: $cycle, content: $content, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'RoutineModel(id: $id, userId: $userId, name: $name, cycle: $cycle, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, routineTime: $routineTime)';
   }
 }

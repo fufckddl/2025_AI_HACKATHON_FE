@@ -24,4 +24,24 @@ class TaskItem {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  // JSON 직렬화
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'isCompleted': isCompleted,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  // JSON 역직렬화
+  factory TaskItem.fromJson(Map<String, dynamic> json) {
+    return TaskItem(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
 }

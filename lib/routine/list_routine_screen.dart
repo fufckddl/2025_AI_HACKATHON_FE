@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../models/routine_model.dart';
 import '../widgets/custom_button.dart';
 import 'create_routine_screen.dart';
 import '../components/routine_detail_popup.dart';
+import '../services/api_service.dart';
 
 class ListRoutineScreen extends StatefulWidget {
   const ListRoutineScreen({super.key});
@@ -17,6 +19,7 @@ class ListRoutineScreen extends StatefulWidget {
 
 class _ListRoutineScreenState extends State<ListRoutineScreen> {
   List<RoutineModel> _routines = [];
+  List<RoutineModel> _allRoutines = []; // 모든 루틴 저장
   bool _isLoading = true;
 
   @override
@@ -25,50 +28,141 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
     _loadRoutines();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 다른 페이지에서 돌아왔을 때 데이터 새로고침
+    final ModalRoute? route = ModalRoute.of(context);
+    if (route?.isCurrent == true) {
+      _loadRoutines();
+    }
+  }
+
+  // HTTP 날짜 형식을 파싱하는 헬퍼 함수
+  DateTime _parseHttpDate(String dateStr) {
+    try {
+      // MySQL datetime 형식: "2025-10-25 20:28:31"
+      if (dateStr.contains('-') && dateStr.contains(':') && dateStr.contains(' ')) {
+        return DateTime.parse(dateStr);
+      }
+      
+      // HTTP date 형식: "Sat, 25 Oct 2025 20:28:31 GMT"
+      if (dateStr.contains(',')) {
+        final parts = dateStr.split(',');
+        if (parts.length >= 2) {
+          final datePart = parts[1].trim();
+          final dateComponents = datePart.split(' ');
+          
+          if (dateComponents.length >= 4) {
+            final day = dateComponents[0].padLeft(2, '0');
+            final monthMap = {
+              'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+              'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+              'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+            };
+            final month = monthMap[dateComponents[1]] ?? '01';
+            final year = dateComponents[2];
+            final time = dateComponents[3];
+            
+            final formattedDate = '$year-$month-$day $time';
+            return DateTime.parse(formattedDate);
+          }
+        }
+      }
+      
+      // 기본 파싱 시도
+      return DateTime.parse(dateStr);
+    } catch (e) {
+      print('⚠️ 날짜 파싱 실패: $dateStr - $e');
+      return DateTime.now();
+    }
+  }
+
   Future<void> _loadRoutines() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // TODO: API 호출로 루틴 목록 가져오기
-      // final response = await ApiService().get('/routines');
-      // _routines = (response['data'] as List)
-      //     .map((json) => RoutineModel.fromJson(json))
-      //     .toList();
+      // 사용자 ID 가져오기
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
       
-      // 임시 더미 데이터
-      await Future.delayed(const Duration(seconds: 1));
-      _routines = [
-        RoutineModel(
-          id: 1,
-          userId: 1,
-          name: '매일 운동하기',
-          cycle: 1,
-          content: '매일 30분씩 운동을 하여 건강을 유지합니다.',
-          createdAt: DateTime.now().subtract(const Duration(days: 5)),
-          updatedAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-        RoutineModel(
-          id: 2,
-          userId: 1,
-          name: '독서하기',
-          cycle: 2,
-          content: '2일마다 책을 읽어 지식을 쌓습니다.',
-          createdAt: DateTime.now().subtract(const Duration(days: 10)),
-          updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-        ),
-        RoutineModel(
-          id: 3,
-          userId: 1,
-          name: '공부하기',
-          cycle: 1,
-          content: '매일 1시간씩 공부하여 실력을 향상시킵니다.',
-          createdAt: DateTime.now().subtract(const Duration(days: 7)),
-          updatedAt: DateTime.now().subtract(const Duration(days: 3)),
-        ),
-      ];
+      if (userId == null) {
+        print('❌ 사용자 ID가 없습니다.');
+        return;
+      }
+
+      // /routines/user/<user_id> API 호출 (전체 루틴 조회)
+      final response = await ApiService().get('/routines/user/$userId');
+      
+      if (response['result'] == 'success' && response['data'] != null) {
+        final routines = response['data'] as List<dynamic>?;
+        
+        if (routines != null) {
+          print('📋 전체 루틴 개수: ${routines.length}');
+          
+          setState(() {
+            _routines = routines.map((routine) {
+              // routine_time 파싱
+              DateTime routineDateTime = DateTime.now();
+              if (routine['routine_time'] != null) {
+                if (routine['routine_time'] is String) {
+                  routineDateTime = _parseHttpDate(routine['routine_time'] as String);
+                } else if (routine['routine_time'] is DateTime) {
+                  routineDateTime = routine['routine_time'] as DateTime;
+                }
+              }
+              
+              // created_at 파싱
+              DateTime createdAt = DateTime.now();
+              if (routine['created_at'] != null) {
+                if (routine['created_at'] is String) {
+                  createdAt = _parseHttpDate(routine['created_at'] as String);
+                } else if (routine['created_at'] is DateTime) {
+                  createdAt = routine['created_at'] as DateTime;
+                }
+              }
+              
+              // updated_at 파싱
+              DateTime updatedAt = DateTime.now();
+              if (routine['updated_at'] != null) {
+                if (routine['updated_at'] is String) {
+                  updatedAt = _parseHttpDate(routine['updated_at'] as String);
+                } else if (routine['updated_at'] is DateTime) {
+                  updatedAt = routine['updated_at'] as DateTime;
+                }
+              }
+              
+              final routineContent = routine['routine_content'] ?? '';
+              print('⏰ 루틴: ${routine['routine_name']}, 시간: $routineDateTime, content: $routineContent');
+              
+              return RoutineModel(
+                id: routine['id'] ?? 0,
+                userId: userId,
+                name: routine['routine_name'] ?? '',
+                cycle: 1,
+                content: routineContent,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                routineTime: routineDateTime,
+              );
+            }).toList();
+            
+            _allRoutines = List<RoutineModel>.from(_routines);
+            
+            print('✅ 전체 루틴 로드 완료: ${_routines.length}개');
+          });
+        } else {
+          print('❌ routines가 null입니다.');
+          setState(() {
+            _routines = [];
+            _allRoutines = [];
+          });
+        }
+      }
     } catch (e) {
+      print('❌ 루틴 목록 로드 실패: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -278,13 +372,13 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
               Row(
                 children: [
                   const Icon(
-                    Ionicons.calendar_outline,
+                    Ionicons.time_outline,
                     size: 14,
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${routine.createdAt.month}/${routine.createdAt.day} 생성',
+                    '${routine.routineTime.month}/${routine.routineTime.day} ${routine.routineTime.hour.toString().padLeft(2, '0')}:${routine.routineTime.minute.toString().padLeft(2, '0')}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.grey,
@@ -454,18 +548,46 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
     );
   }
 
-  void _deleteRoutine(RoutineModel routine) {
-    setState(() {
-      _routines.removeWhere((r) => r.id == routine.id);
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${routine.name} 루틴이 삭제되었습니다.'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  void _deleteRoutine(RoutineModel routine) async {
+    try {
+      // API 호출로 루틴 삭제
+      final response = await ApiService().delete('/routines/${routine.id}/delete');
+      
+      if (response['result'] == 'success') {
+        setState(() {
+          _routines.removeWhere((r) => r.id == routine.id);
+          _allRoutines.removeWhere((r) => r.id == routine.id);
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${routine.name} 루틴이 삭제되었습니다.'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['msg'] ?? '루틴 삭제에 실패했습니다.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   bool _hasRoutineOptions(RoutineModel routine) {

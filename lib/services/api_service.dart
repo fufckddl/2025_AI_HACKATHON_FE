@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 
 class ApiService {
@@ -21,8 +22,18 @@ class ApiService {
   void removeAuthToken() {
     _headers.remove('Authorization');
   }
+  
+  // 토큰 자동 로드 및 설정
+  Future<void> _loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.userTokenKey);
+    if (token != null && token.isNotEmpty) {
+      setAuthToken(token);
+    }
+  }
 
   Future<Map<String, dynamic>> get(String endpoint) async {
+    await _loadToken();  // 토큰 자동 로드
     try {
       final response = await http
           .get(
@@ -38,6 +49,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> data) async {
+    await _loadToken();  // 토큰 자동 로드
     try {
       final response = await http
           .post(
@@ -54,6 +66,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> data) async {
+    await _loadToken();  // 토큰 자동 로드
     try {
       final response = await http
           .put(
@@ -70,6 +83,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> delete(String endpoint) async {
+    await _loadToken();  // 토큰 자동 로드
     try {
       final response = await http
           .delete(

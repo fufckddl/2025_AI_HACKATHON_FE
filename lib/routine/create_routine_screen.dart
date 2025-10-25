@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../models/routine_model.dart';
 import '../widgets/custom_button.dart';
 import '../services/notification_service.dart';
+import '../services/api_service.dart';
 
 class CreateRoutineScreen extends StatefulWidget {
   final RoutineModel? routineToEdit;
@@ -67,6 +69,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     setState(() {
       _options.add({
         'id': DateTime.now().millisecondsSinceEpoch,
+        'timing': '전', // 기본값: "전"
         'minutes': TextEditingController(),
         'text': TextEditingController(),
       });
@@ -149,6 +152,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         
         _options.add({
           'id': DateTime.now().millisecondsSinceEpoch,
+          'timing': optionData['timing'] ?? '전', // 기본값: "전"
           'minutes': minutesController,
           'text': textController,
         });
@@ -364,7 +368,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
               _buildSectionTitle('루틴 옵션'),
               const SizedBox(height: 4),
               Text(
-                '루틴 시작 -분전 AI가 읽을 메시지입니다.',
+                '루틴 시작 -분전/후에 받을 알림 텍스트입니다.',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -558,45 +562,71 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     });
 
     try {
-      // RoutineModel 생성
-      final routine = RoutineModel(
-        id: 0, // 서버에서 자동 생성될 ID
-        userId: 1, // 임시 사용자 ID (실제로는 로그인한 사용자 ID)
-        name: _nameController.text.trim(),
-        cycle: 1, // 기본값: 매일
-        content: _contentController.text.trim(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+      // 사용자 ID 가져오기
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+      
+      if (userId == null) {
+        throw Exception('로그인이 필요합니다.');
+      }
 
-      // 시간 파싱
+      // 날짜와 시간 파싱
+      final dateParts = _dateController.text.split('-');
+      final year = int.parse(dateParts[0]);
+      final month = int.parse(dateParts[1]);
+      final day = int.parse(dateParts[2]);
+      
       final timeParts = _timeController.text.split(':');
       final hour = int.parse(timeParts[0]);
       final minute = int.parse(timeParts[1]);
+      
+      // DateTime 생성
+      final routineDateTime = DateTime(year, month, day, hour, minute);
+      final routineTimeStr = '${routineDateTime.year}-${routineDateTime.month.toString().padLeft(2, '0')}-${routineDateTime.day.toString().padLeft(2, '0')} ${routineDateTime.hour.toString().padLeft(2, '0')}:${routineDateTime.minute.toString().padLeft(2, '0')}:00';
+
+      // 옵션 데이터 준비
+      final options = _options.map((option) {
+        return {
+          'timing': option['timing'] ?? '전', // "전" 또는 "후"
+          'minutes': option['minutes'].text.isEmpty ? null : int.tryParse(option['minutes'].text),
+          'text': option['text'].text.trim(),
+        };
+      }).where((option) {
+        // 빈 옵션 필터링
+        return option['minutes'] != null && option['text'].isNotEmpty;
+      }).toList();
 
       if (widget.routineToEdit != null) {
         // 수정 모드: 기존 루틴 업데이트
-        // TODO: API 호출로 루틴 수정 처리
-        // await ApiService().put('/routines/${widget.routineToEdit!.id}', routine.toJson());
+        // TODO: 수정 API 엔드포인트 구현 필요
+        throw Exception('수정 기능은 아직 구현되지 않았습니다.');
         
         // 기존 알림 취소
         await NotificationService().cancelNotification(widget.routineToEdit!.id);
       } else {
         // 생성 모드: 새 루틴 생성
-        // TODO: API 호출로 루틴 생성 처리
-        // await ApiService().post('/routines', routine.toJson());
+        final response = await ApiService().post('/routines', {
+          'user_id': userId,
+          'routine_name': _nameController.text.trim(),
+          'routine_content': _contentController.text.trim(),
+          'routine_time': routineTimeStr,
+          'options': options,
+        });
+        
+        if (response['result'] != 'success') {
+          throw Exception(response['msg'] ?? '루틴 생성에 실패했습니다.');
+        }
+        
+        final routineId = response['routine_id'];
+        
+        // 매일 특정 시간에 알림 예약
+        await NotificationService().scheduleDailyNotification(
+          id: routineId,
+          title: _nameController.text.trim(), // 루틴 이름
+          body: _contentController.text.trim(), // 루틴 내용
+          time: Time(hour, minute),
+        );
       }
-      
-      // 매일 특정 시간에 알림 예약
-      final notificationId = widget.routineToEdit?.id ?? routine.id;
-      await NotificationService().scheduleDailyNotification(
-        id: notificationId,
-        title: '루틴 시간입니다! 🎯',
-        body: routine.name,
-        time: Time(hour, minute),
-      );
-      
-      await Future.delayed(const Duration(seconds: 2)); // 임시 딜레이
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -606,8 +636,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           ),
         );
         
-        // 루틴 목록 페이지로 이동
-        Navigator.pop(context);
+        // 홈 화면으로 돌아가면서 새로고침 신호 전달
+        Navigator.pop(context, true); // true를 반환하여 홈 화면에 새로고침 신호 전달
       }
     } catch (e) {
       if (mounted) {
@@ -670,36 +700,146 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           
           const SizedBox(height: 12),
           
+          // 드롭다운, 분 입력, 알림 텍스트를 한 줄에 배치
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                flex: 2,
-                child: _buildTextField(
-                  controller: option['minutes'],
-                  label: '분전',
-                  hint: '5',
-                  icon: Ionicons.time_outline,
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    // 옵션 필드는 선택사항이므로 유효성 검사 제거
-                    return null;
-                  },
+              // 드롭다운: "전" 또는 "후"
+              SizedBox(
+                width: 80,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: DropdownButton<String>(
+                    value: option['timing'] ?? '전',
+                    isExpanded: true,
+                    underline: Container(),
+                    items: const [
+                      DropdownMenuItem(
+                        value: '전', 
+                        child: Center(child: Text('전')),
+                      ),
+                      DropdownMenuItem(
+                        value: '후', 
+                        child: Center(child: Text('후')),
+                      ),
+                    ],
+                    selectedItemBuilder: (BuildContext context) {
+                      return <String>['전', '후'].map<Widget>((String item) {
+                        return Center(
+                          child: Text(
+                            item,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      }).toList();
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        option['timing'] = value;
+                      });
+                    },
+                    icon: const Icon(Ionicons.chevron_down, color: Colors.grey, size: 18),
+                  ),
                 ),
               ),
               
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               
+              // 분 입력 필드 (Icon + Input + "분" 텍스트를 하나로)
               Expanded(
-                flex: 5,
-                child: _buildTextField(
-                  controller: option['text'],
-                  label: '알림 텍스트',
-                  hint: '알림 텍스트를 입력하세요. (최대 100자)',
-                  icon: Ionicons.chatbubble_outline,
-                  validator: (value) {
-                    // 옵션 필드는 선택사항이므로 유효성 검사 제거
-                    return null;
-                  },
+                flex: 2,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextFormField(
+                    controller: option['minutes'],
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: '5',
+                      prefixIcon: Icon(Ionicons.time_outline, color: AppColors.primary),
+                      suffixText: '분',
+                      suffixStyle: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 12),
+              
+              // 알림 텍스트 입력 필드
+              Expanded(
+                flex: 3,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextFormField(
+                    controller: option['text'],
+                    decoration: InputDecoration(
+                      hintText: '알림 텍스트를 입력하세요.',
+                      prefixIcon: Icon(Ionicons.chatbubble_outline, color: AppColors.primary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
                 ),
               ),
             ],

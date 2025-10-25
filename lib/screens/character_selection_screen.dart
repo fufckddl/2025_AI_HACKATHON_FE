@@ -2,7 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
+import '../services/api_service.dart';
 
 class CharacterSelectionScreen extends StatefulWidget {
   const CharacterSelectionScreen({super.key});
@@ -563,7 +566,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     );
   }
 
-  void _handleCharacterSelection() {
+  void _handleCharacterSelection() async {
     final selectedCharacter = _characters[_currentIndex];
     
     // 선택된 캐릭터 정보를 다이얼로그로 표시
@@ -608,16 +611,65 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
             ),
             TextButton(
               child: const Text('시작하기'),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                // TODO: 캐릭터 선택 완료 처리
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${selectedCharacter.name}와 함께하는 여정을 시작합니다!'),
-                    backgroundColor: selectedCharacter.color,
-                  ),
-                );
-                Navigator.pop(context);
+                
+                try {
+                  // 사용자 ID 가져오기
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getInt('user_id');
+                  
+                  if (userId == null) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('로그인이 필요합니다.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+                  
+                  // 백엔드 API 호출
+                  final response = await ApiService().post('/character/select', {
+                    'user_id': userId,
+                    'character_id': selectedCharacter.id,
+                  });
+                  
+                  if (response['result'] == 'success' && context.mounted) {
+                    // 캐릭터 ID 저장 (String 타입으로 저장)
+                    await prefs.setString('character_id', selectedCharacter.id.toString());
+                    
+                    print('✅ 캐릭터 ID 저장: ${selectedCharacter.id}');
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${selectedCharacter.name}와 함께하는 여정을 시작합니다!'),
+                        backgroundColor: selectedCharacter.color,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(response['msg'] ?? '캐릭터 선택에 실패했습니다.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('오류가 발생했습니다: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
             ),
           ],

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../models/task_item.dart';
 
@@ -16,6 +18,12 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
   final TextEditingController _taskController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  @override
   void dispose() {
     _taskController.dispose();
     super.dispose();
@@ -24,55 +32,69 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: const Icon(
-                  Ionicons.checkbox_outline,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                '집중력 유지 도구',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          
-          // 할 일 추가 입력
-          _buildTaskInput(),
-          
-          const SizedBox(height: 20),
-          
-          // 해야할 일과 끝낸 일 분리 표시
-          Row(
-            children: [
-              Expanded(
-                child: _buildTaskList('해야할 일', _todoTasks, false),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTaskList('끝낸 일', _completedTasks, true),
-              ),
-            ],
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: const Icon(
+                    Ionicons.checkbox_outline,
+                    color: AppColors.primary,
+                    size: 24.0,
+                  ),
+                ),
+                const SizedBox(width: 12.0),
+                const Text(
+                  'ToDoList',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            // 할 일 추가 입력
+            _buildTaskInput(),
+            
+            const SizedBox(height: 20),
+            
+            // 해야할 일과 끝낸 일 분리 표시
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTaskList('해야할 일', _todoTasks, false),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildTaskList('끝낸 일', _completedTasks, true),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -82,15 +104,9 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Row(
         children: [
@@ -131,10 +147,10 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCompleted ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isCompleted ? Colors.green.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.3),
+          color: Colors.grey[300]!,
           width: 1,
         ),
       ),
@@ -149,12 +165,15 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
                 size: 16,
               ),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isCompleted ? Colors.green[700] : Colors.orange[700],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isCompleted ? Colors.green[700] : Colors.orange[700],
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
@@ -220,18 +239,18 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: isCompleted ? Colors.green : Colors.grey[300],
+                color: isCompleted ? AppColors.primary : Colors.white,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: isCompleted ? Colors.green : Colors.grey[400]!,
+                  color: isCompleted ? AppColors.primary : Colors.grey[300]!,
                   width: 1,
                 ),
               ),
               child: isCompleted
                   ? const Icon(
-                      Ionicons.checkmark,
+                      Icons.check,
                       color: Colors.white,
-                      size: 12,
+                      size: 14,
                     )
                   : null,
             ),
@@ -242,6 +261,7 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
               task.text,
               style: TextStyle(
                 fontSize: 14,
+                fontWeight: FontWeight.bold,
                 decoration: isCompleted ? TextDecoration.lineThrough : null,
                 color: isCompleted ? Colors.grey[600] : Colors.black87,
               ),
@@ -260,6 +280,52 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
     );
   }
 
+  // SharedPreferences에 할 일 저장
+  Future<void> _saveTasks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id') ?? 0;
+      
+      // 할 일 리스트를 JSON 문자열로 변환
+      final todoJson = _todoTasks.map((task) => task.toJson()).toList();
+      final completedJson = _completedTasks.map((task) => task.toJson()).toList();
+      
+      await prefs.setString('todo_tasks_$userId', jsonEncode(todoJson));
+      await prefs.setString('completed_tasks_$userId', jsonEncode(completedJson));
+      
+      print('✅ ToDoList 저장 완료 (user_id: $userId)');
+    } catch (e) {
+      print('❌ ToDoList 저장 실패: $e');
+    }
+  }
+
+  // SharedPreferences에서 할 일 로드
+  Future<void> _loadTasks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id') ?? 0;
+      
+      // JSON 문자열을 리스트로 변환
+      final todoJsonStr = prefs.getString('todo_tasks_$userId');
+      final completedJsonStr = prefs.getString('completed_tasks_$userId');
+      
+      if (todoJsonStr != null) {
+        final List<dynamic> todoList = jsonDecode(todoJsonStr);
+        _todoTasks = todoList.map((json) => TaskItem.fromJson(json)).toList();
+      }
+      
+      if (completedJsonStr != null) {
+        final List<dynamic> completedList = jsonDecode(completedJsonStr);
+        _completedTasks = completedList.map((json) => TaskItem.fromJson(json)).toList();
+      }
+      
+      setState(() {});
+      print('✅ ToDoList 로드 완료 (user_id: $userId)');
+    } catch (e) {
+      print('❌ ToDoList 로드 실패: $e');
+    }
+  }
+
   // 할 일 추가
   void _addTask(String text) {
     if (text.trim().isEmpty) return;
@@ -273,6 +339,7 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
     });
     
     _taskController.clear();
+    _saveTasks(); // 저장
   }
 
   // 할 일 완료/미완료 토글
@@ -288,6 +355,7 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
         _completedTasks.add(task.copyWith(isCompleted: true));
       }
     });
+    _saveTasks(); // 저장
   }
 
   // 할 일 삭제
@@ -296,5 +364,6 @@ class _FocusToolsSectionState extends State<FocusToolsSection> {
       _todoTasks.remove(task);
       _completedTasks.remove(task);
     });
+    _saveTasks(); // 저장
   }
 }

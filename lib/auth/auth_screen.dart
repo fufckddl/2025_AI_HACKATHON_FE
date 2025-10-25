@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../models/user_model.dart';
 import '../widgets/custom_button.dart';
+import '../services/api_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -680,11 +682,47 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     });
 
     try {
-      // TODO: 실제 로그인 API 호출
-      await Future.delayed(const Duration(seconds: 2));
-      
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+      // 로그인 API 호출
+      final response = await ApiService().post('/login', {
+        'email': _loginEmailController.text.trim(),
+        'password': _loginPasswordController.text,
+      });
+
+      if (response['result'] == 'success') {
+        // JWT 토큰 및 유저 정보 저장
+        final token = response['token'];
+        final user = response['user'];
+        final prefs = await SharedPreferences.getInstance();
+        
+        // 토큰 콘솔 로그
+        print('🔑 로그인 성공 - JWT 토큰: $token');
+        print('👤 유저 정보: ${user['name']} (ID: ${user['id']})');
+        
+        // 토큰 저장
+        await prefs.setString(AppConstants.userTokenKey, token);
+        
+        // 유저 정보 저장
+        await prefs.setString(AppConstants.userInfoKey, user.toString());
+        await prefs.setInt('user_id', user['id']);
+        await prefs.setString('user_name', user['name']);
+        await prefs.setString('child_name', user['child_name']);
+        await prefs.setInt('child_age', user['child_age']);
+        if (user['character_id'] != null) {
+          await prefs.setInt('character_id', user['character_id']);
+        }
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['msg'] ?? '로그인에 실패했습니다.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -714,20 +752,38 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     });
 
     try {
-      // TODO: 실제 회원가입 API 호출
-      await Future.delayed(const Duration(seconds: 2));
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('회원가입이 완료되었습니다!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        
-        // 로그인 탭으로 전환
-        _tabController.animateTo(0);
-        _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      // 회원가입 API 호출
+      final response = await ApiService().post('/signup', {
+        'name': _signupNameController.text.trim(),
+        'email': _signupEmailController.text.trim(),
+        'password': _signupPasswordController.text,
+        'password_confirm': _signupConfirmPasswordController.text,
+        'child_name': _childNameController.text.trim(),
+        'child_age': int.parse(_childAgeController.text.trim()),
+      });
+
+      if (response['result'] == 'success') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['msg'] ?? '회원가입이 완료되었습니다!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          
+          // 로그인 탭으로 전환
+          _tabController.animateTo(0);
+          _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['msg'] ?? '회원가입에 실패했습니다.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

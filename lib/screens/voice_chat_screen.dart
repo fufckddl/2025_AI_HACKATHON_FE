@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
+import '../services/api_service.dart';
+import 'character_selection_screen.dart';
 
 class VoiceChatScreen extends StatefulWidget {
   const VoiceChatScreen({super.key});
@@ -53,12 +58,20 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   late Animation<double> _micPulseAnimation;
   late Animation<double> _talkingPulseAnimation;
 
+  // 선택된 캐릭터 정보
+  String? _selectedCharacterId;
+  String? _selectedCharacterName;
+  String? _selectedCharacterImage;
+
   @override
   void initState() {
     super.initState();
 
     // 스크롤 컨트롤러 초기화
     _scrollController = ScrollController();
+
+    // 선택된 캐릭터 로드
+    _loadSelectedCharacter();
 
     // Speech to Text 초기화
     _speech = stt.SpeechToText();
@@ -117,11 +130,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         _characterAnimationController.reset();
       }
     });
-
-    // 초기 메시지 추가
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _addBotMessage('안녕하세요! 루티입니다. 무엇을 도와드릴까요?');
-    });
   }
 
   @override
@@ -145,6 +153,184 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     _talkingAnimationController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 선택된 캐릭터 로드 (DB에서 가져오기)
+  Future<void> _loadSelectedCharacter() async {
+    try {
+      // 사용자 ID 가져오기
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+      
+      if (userId == null) {
+        print('❌ 사용자 ID가 없습니다.');
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showCharacterNotSelectedDialog();
+          });
+        }
+        return;
+      }
+      
+      print('🔍 사용자 정보 조회 중... (userId: $userId)');
+      
+      // DB에서 사용자 정보 조회
+      final response = await ApiService().get('/home/$userId');
+      
+      if (response['result'] == 'success' && response['data'] != null) {
+        final userData = response['data'];
+        final characterId = userData['character_id'];
+        
+        print('🔍 DB에서 조회된 character_id: $characterId');
+        
+        if (characterId == null || characterId.toString().isEmpty) {
+          // 캐릭터가 선택되지 않은 경우
+          print('⚠️ 캐릭터가 선택되지 않음 - 팝업 표시 예정');
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              print('📢 캐릭터 미선택 팝업 표시');
+              _showCharacterNotSelectedDialog();
+            });
+          }
+          return;
+        }
+
+        // 캐릭터 정보 로드
+        final characterIdStr = characterId.toString();
+        setState(() {
+          _selectedCharacterId = characterIdStr;
+        });
+
+        // 캐릭터 ID에 따라 이름과 이미지 설정
+        _setCharacterInfo(characterIdStr);
+        
+        print('✅ 선택된 캐릭터 ID: $characterIdStr');
+        
+        // 초기 메시지 추가
+        if (mounted) {
+          _addBotMessage('안녕하세요! 무엇을 도와드릴까요?');
+        }
+      } else {
+        print('❌ 사용자 정보 조회 실패: ${response['msg']}');
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showCharacterNotSelectedDialog();
+          });
+        }
+      }
+    } catch (e) {
+      print('❌ 캐릭터 로드 실패: $e');
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showCharacterNotSelectedDialog();
+        });
+      }
+    }
+  }
+
+  // 캐릭터 ID에 따라 정보 설정
+  void _setCharacterInfo(String characterId) {
+    switch (characterId) {
+      case '1':
+        _selectedCharacterName = '루티';
+        _selectedCharacterImage = 'images/bear.png';
+        break;
+      case '2':
+        _selectedCharacterName = '미니';
+        _selectedCharacterImage = '🧸';
+        break;
+      case '3':
+        _selectedCharacterName = '스마트';
+        _selectedCharacterImage = '🎓';
+        break;
+      case '4':
+        _selectedCharacterName = '체리';
+        _selectedCharacterImage = '🍒';
+        break;
+      case '5':
+        _selectedCharacterName = '스타';
+        _selectedCharacterImage = '⭐';
+        break;
+      default:
+        _selectedCharacterName = '루티';
+        _selectedCharacterImage = 'images/bear.png';
+    }
+  }
+
+  // 캐릭터 미선택 다이얼로그 표시
+  void _showCharacterNotSelectedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange, size: 28),
+              SizedBox(width: 10),
+              Text(
+                '캐릭터를 선택해주세요',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            '음성 대화를 사용하려면 먼저 캐릭터를 선택해야 합니다.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // 다이얼로그 닫기
+                Navigator.pop(context); // 음성 대화 화면 닫기
+              },
+              child: const Text(
+                '나중에',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // 다이얼로그 닫기
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CharacterSelectionScreen(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: const Text(
+                '캐릭터 선택하러 가기',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Speech to Text 초기화
@@ -323,6 +509,61 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     _silenceTimer?.cancel();
   }
 
+  // STT 결과를 JSON 형태로 변환
+  String _convertSTTToJson(String recognizedText) {
+    final sttData = {
+      'timestamp': DateTime.now().toIso8601String(),
+      'text': recognizedText,
+      'language': _selectedLocale,
+      'confidence': 'high', // 실제 STT 결과에서는 confidence 값 제공 시 사용
+      'session_id': _selectedCharacterId ?? 'unknown',
+      'metadata': {
+        'character_id': _selectedCharacterId,
+        'character_name': _selectedCharacterName,
+        'is_listening': _isListening,
+        'speech_enabled': _speechEnabled,
+      }
+    };
+    
+    // JSON 문자열로 변환 (indent 옵션으로 보기 좋게)
+    final jsonString = jsonEncode(sttData);
+    // 들여쓰기 추가 (단순 format)
+    return _formatJson(jsonString);
+  }
+  
+  // JSON 포맷팅 (들여쓰기 추가)
+  String _formatJson(String jsonString) {
+    final buffer = StringBuffer();
+    int indent = 0;
+    bool inString = false;
+    
+    for (int i = 0; i < jsonString.length; i++) {
+      final char = jsonString[i];
+      
+      if (char == '"' && (i == 0 || jsonString[i - 1] != '\\')) {
+        inString = !inString;
+      }
+      
+      if (!inString) {
+        if (char == '{' || char == '[') {
+          buffer.writeln('${'  ' * indent}$char');
+          indent++;
+        } else if (char == '}' || char == ']') {
+          indent--;
+          buffer.writeln('${'  ' * indent}$char');
+        } else if (char == ',') {
+          buffer.writeln(',');
+        } else if (char != ' ' && char != '\n') {
+          buffer.write(char);
+        }
+      } else {
+        buffer.write(char);
+      }
+    }
+    
+    return buffer.toString();
+  }
+
   // 사용자 음성 처리 (비동기 흐름: stop -> add user msg -> AI 응답 -> 재녹음)
   Future<void> _processUserSpeech() async {
     print('_processUserSpeech 호출됨 - 처리중: $_isProcessingResponse, 텍스트: "$_currentWords", 마지막텍스트: "$_lastWords"');
@@ -354,6 +595,10 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     _lastWords = _currentWords;
     final capturedText = _currentWords;
     print('사용자 메시지 추가: "$capturedText"');
+
+    // STT 결과를 JSON 형태로 변환 및 출력
+    final sttJson = _convertSTTToJson(capturedText);
+    print('📝 STT 결과 (JSON):\n$sttJson');
 
     // 클리어 현재 텍스트 (UI는 user message 추가 후 비움)
     if (!mounted) return;
@@ -406,6 +651,13 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         await _speech.listen(
           onResult: (result) {
             if (!mounted) return;
+            
+            // 실시간 STT 결과를 JSON으로 변환 및 출력
+            if (result.recognizedWords.isNotEmpty) {
+              final sttJson = _convertSTTToJson(result.recognizedWords);
+              print('📝 실시간 STT 결과 (JSON - fallback):\n$sttJson');
+            }
+            
             setState(() {
               _currentWords = result.recognizedWords;
             });
@@ -485,6 +737,13 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
           onResult: (result) {
             if (!mounted) return;
             print('onResult: 인식된 텍스트: "${result.recognizedWords}", _isListening: $_isListening');
+            
+            // 실시간 STT 결과를 JSON으로 변환 및 출력
+            if (result.recognizedWords.isNotEmpty) {
+              final sttJson = _convertSTTToJson(result.recognizedWords);
+              print('📝 실시간 STT 결과 (JSON):\n$sttJson');
+            }
+            
             // 실시간 업데이트
             setState(() {
               _currentWords = result.recognizedWords;
@@ -514,6 +773,13 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
           onResult: (result) {
             if (!mounted) return;
             print('onResult (no locale): 인식된 텍스트: "${result.recognizedWords}", _isListening: $_isListening');
+            
+            // 실시간 STT 결과를 JSON으로 변환 및 출력
+            if (result.recognizedWords.isNotEmpty) {
+              final sttJson = _convertSTTToJson(result.recognizedWords);
+              print('📝 실시간 STT 결과 (JSON):\n$sttJson');
+            }
+            
             setState(() {
               _currentWords = result.recognizedWords;
             });
@@ -714,20 +980,27 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(97),
-                      child: Image.asset(
-                        'images/bear.png',
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Text(
-                              '🌱',
-                              style: TextStyle(fontSize: 80),
+                      child: _selectedCharacterImage != null && _selectedCharacterImage!.startsWith('images/')
+                          ? Image.asset(
+                              _selectedCharacterImage!,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Text(
+                                    _selectedCharacterImage ?? '🌱',
+                                    style: const TextStyle(fontSize: 80),
+                                  ),
+                                );
+                              },
+                            )
+                          : Center(
+                              child: Text(
+                                _selectedCharacterImage ?? '🌱',
+                                style: const TextStyle(fontSize: 80),
+                              ),
                             ),
-                          );
-                        },
-                      ),
                     ),
                   ),
                 ),
@@ -738,9 +1011,9 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
           const SizedBox(height: 20),
 
           // 캐릭터 이름
-          const Text(
-            '루티',
-            style: TextStyle(
+          Text(
+            _selectedCharacterName ?? '미정',
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.black,
@@ -890,17 +1163,27 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'images/bear.png',
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Text('🌱', style: TextStyle(fontSize: 16)),
-                    );
-                  },
-                ),
+                child: _selectedCharacterImage != null && _selectedCharacterImage!.startsWith('images/')
+                    ? Image.asset(
+                        _selectedCharacterImage!,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Text(
+                              _selectedCharacterImage ?? '🌱',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Text(
+                          _selectedCharacterImage ?? '🌱',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 8),

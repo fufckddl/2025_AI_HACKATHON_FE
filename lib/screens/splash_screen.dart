@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
 import '../auth/auth_screen.dart';
+import '../screens/home.dart';
+import '../services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -47,14 +51,67 @@ class _SplashScreenState extends State<SplashScreen>
     // 애니메이션 시작
     _animationController.forward();
 
-    // 3초 후 인증 화면으로 이동
-    Future.delayed(const Duration(seconds: 3), () {
+    // 자동 로그인 체크 및 화면 이동
+    _checkAuth();
+  }
+  
+  Future<void> _checkAuth() async {
+    print('🚀 앱 시작 - 자동 로그인 확인 중...');
+    
+    // 2초 대기 (스플래시 화면 표시)
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted) return;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(AppConstants.userTokenKey);
+      
+      // 토큰이 있으면 검증
+      if (token != null && token.isNotEmpty) {
+        print('🔑 저장된 토큰 발견: ${token.substring(0, 20)}...');
+        print('✅ 토큰 검증 API 호출 중...');
+        
+        try {
+          // 토큰 검증 API 호출
+          final response = await ApiService().post('/verify-token', {});
+          
+          if (response['result'] == 'success' && mounted) {
+            print('✅ 자동 로그인 성공! 홈 화면으로 이동합니다.');
+            print('👤 유저 정보: ${response['user']['name']} (ID: ${response['user']['id']})');
+            
+            // 토큰이 유효하면 홈 화면으로 이동
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+            return;
+          } else {
+            print('❌ 자동 로그인 실패: ${response['msg']}');
+          }
+        } catch (e) {
+          // 토큰 검증 실패 시 인증 화면으로
+          print('❌ 토큰 검증 실패: $e');
+        }
+      } else {
+        print('📭 저장된 토큰이 없습니다. 로그인 화면으로 이동합니다.');
+      }
+      
+      // 토큰이 없거나 검증 실패 시 인증 화면으로 이동
+      if (mounted) {
+        print('🔐 로그인 화면으로 이동');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AuthScreen()),
+        );
+      }
+    } catch (e) {
+      // 오류 발생 시 인증 화면으로 이동
+      print('❌ 자동 로그인 확인 중 오류 발생: $e');
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const AuthScreen()),
         );
       }
-    });
+    }
   }
 
   @override

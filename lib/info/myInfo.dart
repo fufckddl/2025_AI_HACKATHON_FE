@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../models/user_model.dart';
 import '../components/bottom_navigation_bar.dart';
 import '../screens/character_selection_screen.dart';
 import '../screens/coaching_report_screen.dart';
+import '../screens/routine_success_screen.dart';
+import '../services/api_service.dart';
 
 class MyInfoScreen extends StatefulWidget {
   const MyInfoScreen({super.key});
@@ -15,15 +18,58 @@ class MyInfoScreen extends StatefulWidget {
 }
 
 class _MyInfoScreenState extends State<MyInfoScreen> {
-  // Dummy user data for demonstration
-  final UserModel _currentUser = UserModel(
-    id: 1,
-    name: '홍길동',
-    email: 'hong@example.com',
-    password: 'password123',
-    childName: '홍루티',
-    childAge: 8,
-  );
+  String _userName = '사용자';
+  String _userEmail = 'email@example.com';
+  int _totalRoutines = 0;
+  int _completedRoutines = 0;
+  double _completionRate = 0.0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+
+      if (userId == null) {
+        print('❌ 사용자 ID가 없습니다.');
+        return;
+      }
+
+      // /home/<user_id> API 호출
+      final response = await ApiService().get('/home/$userId');
+
+      if (response['result'] == 'success' && response['data'] != null) {
+        final data = response['data'];
+        final weeklyStats = data['이번 주 통계'] as Map<String, dynamic>?;
+
+        setState(() {
+          _userName = data['name'] ?? '사용자';
+          _userEmail = prefs.getString('email') ?? 'email@example.com';
+          _totalRoutines = data['총 루틴 수'] ?? 0;
+          _completedRoutines = weeklyStats?['완료 루틴 수'] ?? 0;
+          _completionRate = _totalRoutines > 0 
+              ? (_completedRoutines / _totalRoutines * 100) 
+              : 0.0;
+        });
+      }
+    } catch (e) {
+      print('❌ 사용자 데이터 로드 실패: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +154,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                 radius: 40,
                 backgroundColor: Colors.white,
                 child: Text(
-                  _currentUser.name.isNotEmpty ? _currentUser.name[0] : '홍',
+                  _userName.isNotEmpty ? _userName[0] : '사',
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -141,7 +187,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
           
           // 사용자 이름
           Text(
-            _currentUser.name,
+            _userName,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -153,7 +199,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
           
           // 이메일
           Text(
-            _currentUser.email,
+            _userEmail,
             style: const TextStyle(
               fontSize: 16,
               color: Colors.white70,
@@ -172,25 +218,16 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
           Expanded(
             child: _buildStatCard(
               icon: Ionicons.calendar_outline,
-              value: '21',
+              value: '$_totalRoutines',
               label: '루틴',
               color: AppColors.primary,
             ),
           ),
           const SizedBox(width: 12),
-          /*Expanded(
-            child: _buildStatCard(
-              icon: Ionicons.time_outline,
-              value: '12.5h',
-              label: '시간',
-              color: Colors.purple,
-            ),
-          ),
-          const SizedBox(width: 12),*/
           Expanded(
             child: _buildStatCard(
               icon: Ionicons.checkmark_circle_outline,
-              value: '72%',
+              value: '${_completionRate.toStringAsFixed(0)}%',
               label: '완료율',
               color: Colors.green,
             ),
@@ -369,21 +406,10 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             children: [
               Expanded(
                 child: _buildShortcutCard(
-                  icon: Ionicons.bar_chart_outline,
-                  label: '대시보드',
-                  color: AppColors.primary,
-                  badge: '12',
-                  badgeColor: Colors.red,
-                  onTap: null,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildShortcutCard(
                   icon: Ionicons.document_text_outline,
                   label: '코칭 리포트',
                   color: Colors.orange,
-                  badge: 'New',
+                  badge: '1',
                   badgeColor: Colors.green,
                   onTap: () {
                     Navigator.push(
@@ -401,13 +427,35 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   icon: Ionicons.people_circle_outline,
                   label: '캐릭터',
                   color: Colors.purple,
-                  badge: '1',
+                  badge: '5',
                   badgeColor: AppColors.primary,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const CharacterSelectionScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildShortcutCard(
+                  icon: Ionicons.checkmark_circle_outline,
+                  label: '루틴 완료',
+                  color: Colors.green,
+                  badge: '',
+                  badgeColor: Colors.transparent,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RoutineSuccessScreen(),
                       ),
                     );
                   },
