@@ -6,6 +6,7 @@ import '../constants/app_constants.dart';
 import '../models/routine_model.dart';
 import '../widgets/custom_button.dart';
 import 'create_routine_screen.dart';
+import '../components/routine_detail_popup.dart';
 
 class ListRoutineScreen extends StatefulWidget {
   const ListRoutineScreen({super.key});
@@ -277,20 +278,6 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
               Row(
                 children: [
                   const Icon(
-                    Ionicons.repeat_outline,
-                    size: 14,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${routine.cycle}일마다',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Icon(
                     Ionicons.calendar_outline,
                     size: 14,
                     color: Colors.grey,
@@ -326,115 +313,10 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
   }
 
   void _showRoutineDetails(RoutineModel routine) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.schedule,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          routine.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  _buildDetailRow(
-                    icon: Icons.repeat,
-                    label: '주기',
-                    value: '${routine.cycle}일마다',
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  _buildDetailRow(
-                    icon: Icons.calendar_today,
-                    label: '생성일',
-                    value: '${routine.createdAt.year}.${routine.createdAt.month}.${routine.createdAt.day}',
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  _buildDetailRow(
-                    icon: Icons.update,
-                    label: '수정일',
-                    value: '${routine.updatedAt.year}.${routine.updatedAt.month}.${routine.updatedAt.day}',
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  const Text(
-                    '내용',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      routine.content,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    RoutineDetailPopup.show(
+      context,
+      routine,
+      onDelete: () => _deleteRoutine(routine),
     );
   }
 
@@ -468,5 +350,127 @@ class _ListRoutineScreenState extends State<ListRoutineScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildOptionItem(String minutes, String text) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              minutes,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmDialog(RoutineModel routine) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            '루틴 삭제',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            '정말로 "${routine.name}" 루틴을 삭제하시겠습니까?\n\n삭제된 루틴은 복구할 수 없습니다.',
+            style: const TextStyle(
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                '취소',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteRoutine(routine);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                '삭제',
+                style: TextStyle(
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteRoutine(RoutineModel routine) {
+    setState(() {
+      _routines.removeWhere((r) => r.id == routine.id);
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${routine.name} 루틴이 삭제되었습니다.'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  bool _hasRoutineOptions(RoutineModel routine) {
+    // 더미 로직: 실제로는 루틴 모델에서 옵션 정보를 가져와야 함
+    // 예시: routine.id가 1인 경우에만 옵션이 있다고 가정
+    return routine.id == 1;
   }
 }

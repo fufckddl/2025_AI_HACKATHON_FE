@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import '../constants/app_colors.dart';
 import '../models/user_model.dart';
+import '../components/bottom_navigation_bar.dart';
 import '../screens/character_selection_screen.dart';
 
 class MyInfoScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
               const SizedBox(height: 20),
               
               // 구독 플랜 섹션
-              _buildSubscriptionPlan(),
+              //_buildSubscriptionPlan(),
               
               const SizedBox(height: 20),
               
@@ -55,7 +56,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
               const SizedBox(height: 20),
               
               // 업적 섹션
-              _buildAchievementsSection(),
+              //_buildAchievementsSection(),
               
               const SizedBox(height: 20),
               
@@ -82,7 +83,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 4),
     );
   }
 
@@ -176,7 +177,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          /*Expanded(
             child: _buildStatCard(
               icon: Ionicons.time_outline,
               value: '12.5h',
@@ -184,7 +185,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
               color: Colors.purple,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 12),*/
           Expanded(
             child: _buildStatCard(
               icon: Ionicons.checkmark_circle_outline,
@@ -242,7 +243,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     );
   }
 
-  Widget _buildSubscriptionPlan() {
+ /* Widget _buildSubscriptionPlan() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
@@ -346,7 +347,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
         ],
       ),
     );
-  }
+  }*/
 
   Widget _buildShortcutsSection() {
     return Container(
@@ -375,7 +376,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   onTap: null,
                 ),
               ),
-              const SizedBox(width: 12),
+              /*const SizedBox(width: 12),
               Expanded(
                 child: _buildShortcutCard(
                   icon: Ionicons.star_outline,
@@ -385,12 +386,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   badgeColor: AppColors.primary,
                   onTap: null,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
+              ),*/
               Expanded(
                 child: _buildShortcutCard(
                   icon: Ionicons.people_circle_outline,
@@ -408,7 +404,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              /*const SizedBox(width: 12),
               Expanded(
                 child: _buildShortcutCard(
                   icon: Ionicons.pricetag_outline,
@@ -418,7 +414,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   badgeColor: AppColors.primary,
                   onTap: null,
                 ),
-              ),
+              ),*/
             ],
           ),
         ],
@@ -517,37 +513,37 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             title: '프로필 수정',
             color: AppColors.primary,
           ),
-          _buildMenuItem(
+          /*_buildMenuItem(
             icon: Ionicons.card_outline,
             title: '구독 변경',
             subtitle: 'Plus',
             color: Colors.purple,
             badge: 'Plus',
             badgeColor: AppColors.primary,
-          ),
+          ),*/
           _buildMenuItem(
             icon: Ionicons.notifications_outline,
             title: '알림 설정',
             subtitle: 'ON',
             color: AppColors.primary,
           ),
-          _buildMenuItem(
+          /*_buildMenuItem(
             icon: Ionicons.shield_checkmark_outline,
             title: '보안',
             color: Colors.green,
-          ),
-          _buildMenuItem(
+          ),*/
+          /*_buildMenuItem(
             icon: Ionicons.link_outline,
             title: '연동 관리',
             subtitle: '2개 연동됨',
             color: Colors.grey,
-          ),
+          ),*/
         ],
       ),
     );
   }
 
-  Widget _buildAchievementsSection() {
+  /*Widget _buildAchievementsSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -595,7 +591,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
         ],
       ),
     );
-  }
+  }*/
 
   Widget _buildAchievementCard({
     required IconData icon,
@@ -658,7 +654,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildMenuItem(
+          /*_buildMenuItem(
             icon: Ionicons.musical_notes_outline,
             title: '음성 품질',
             subtitle: '고품질 >',
@@ -669,7 +665,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             title: '저장 위치',
             subtitle: '기기 >',
             color: Colors.grey,
-          ),
+          ),*/
           _buildMenuItem(
             icon: Ionicons.globe_outline,
             title: '언어',
@@ -701,7 +697,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             title: '도움말',
             color: AppColors.primary,
           ),
-          _buildMenuItem(
+          /*_buildMenuItem(
             icon: Ionicons.chatbubble_outline,
             title: '문의하기',
             color: AppColors.primary,
@@ -712,14 +708,14 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             color: Colors.orange,
             badge: 'New',
             badgeColor: Colors.red,
-          ),
+          ),*/
           _buildMenuItem(
             icon: Ionicons.information_circle_outline,
             title: '앱 정보',
             subtitle: 'v1.2.3 >',
             color: Colors.grey,
           ),
-          _buildMenuItem(
+          /*_buildMenuItem(
             icon: Ionicons.document_text_outline,
             title: '이용약관',
             color: Colors.grey,
@@ -728,7 +724,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             icon: Ionicons.lock_closed_outline,
             title: '개인정보처리방침',
             color: Colors.grey,
-          ),
+          ),*/
         ],
       ),
     );
@@ -875,55 +871,6 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 4, // 마이페이지 탭
-        onTap: (index) {
-          if (index != 4) {
-            Navigator.pop(context);
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.home_outline),
-            activeIcon: Icon(Ionicons.home),
-            label: '홈',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.calendar_outline),
-            label: '루틴',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.people_outline),
-            label: '팀',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.people_circle_outline),
-            label: '캐릭터',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.person_outline),
-            label: '마이',
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showLogoutDialog() {
     showDialog(

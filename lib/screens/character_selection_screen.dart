@@ -86,19 +86,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(
-                Ionicons.people_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
+
             const Text(
               '캐릭터 선택',
               style: TextStyle(

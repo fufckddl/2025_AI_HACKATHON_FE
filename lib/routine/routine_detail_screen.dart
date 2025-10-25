@@ -27,19 +27,6 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Icon(
-                Ionicons.calendar_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 8),
             const Text(
               '루틴 상세',
               style: TextStyle(
@@ -710,22 +697,22 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                 // 편집 기능
               },
             ),
-            ListTile(
+            /*ListTile(
               leading: const Icon(Ionicons.copy_outline, color: Colors.blue),
               title: const Text('루틴 복사'),
               onTap: () {
                 Navigator.pop(context);
                 // 복사 기능
               },
-            ),
-            ListTile(
+            ),*/
+            /*ListTile(
               leading: const Icon(Ionicons.share_outline, color: Colors.green),
               title: const Text('루틴 공유'),
               onTap: () {
                 Navigator.pop(context);
                 // 공유 기능
               },
-            ),
+            ),*/
             ListTile(
               leading: const Icon(Ionicons.trash_outline, color: Colors.red),
               title: const Text('루틴 삭제'),

@@ -7,7 +7,9 @@ import '../models/routine_model.dart';
 import '../widgets/custom_button.dart';
 
 class CreateRoutineScreen extends StatefulWidget {
-  const CreateRoutineScreen({super.key});
+  final RoutineModel? routineToEdit;
+  
+  const CreateRoutineScreen({super.key, this.routineToEdit});
 
   @override
   State<CreateRoutineScreen> createState() => _CreateRoutineScreenState();
@@ -17,6 +19,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _contentController = TextEditingController();
+  final _dateController = TextEditingController();
+  final _timeController = TextEditingController();
   
   bool _isLoading = false;
   
@@ -26,14 +30,30 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   @override
   void initState() {
     super.initState();
-    // 초기 옵션 하나 추가
-    _addOption();
+    
+    // 수정 모드일 때 기존 데이터 로드
+    if (widget.routineToEdit != null) {
+      _nameController.text = widget.routineToEdit!.name;
+      _contentController.text = widget.routineToEdit!.content;
+      _dateController.text = '${widget.routineToEdit!.createdAt.year}-${widget.routineToEdit!.createdAt.month.toString().padLeft(2, '0')}-${widget.routineToEdit!.createdAt.day.toString().padLeft(2, '0')}';
+      _timeController.text = '${widget.routineToEdit!.createdAt.hour.toString().padLeft(2, '0')}:${widget.routineToEdit!.createdAt.minute.toString().padLeft(2, '0')}';
+      
+      // 더미 옵션 데이터 추가 (실제로는 루틴 모델에서 가져와야 함)
+      _addOption();
+      _options[0]['minutes'].text = '5';
+      _options[0]['text'].text = '운동 준비하세요!';
+    } else {
+      // 초기 옵션 하나 추가
+      _addOption();
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _contentController.dispose();
+    _dateController.dispose();
+    _timeController.dispose();
     super.dispose();
   }
 
@@ -55,6 +75,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,9 +83,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            const Text(
-              '루틴 생성',
-              style: TextStyle(
+            Text(
+              widget.routineToEdit != null ? '루틴 수정' : '루틴 생성',
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
                 fontSize: 18,
@@ -143,10 +164,55 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                 },
               ),
               
+              const SizedBox(height: 16),
+              
+              // 날짜와 시간 필드
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _dateController,
+                      label: '시작 날짜',
+                      hint: '2025-01-15',
+                      icon: Ionicons.calendar_outline,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '날짜를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _timeController,
+                      label: '시작 시간',
+                      hint: '09:00',
+                      icon: Ionicons.time_outline,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '시간을 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              
               const SizedBox(height: 30),
               
               // 옵션 섹션
               _buildSectionTitle('루틴 옵션'),
+              const SizedBox(height: 4),
+              Text(
+                '루틴 시작 -분전 AI가 읽을 메시지입니다.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
               const SizedBox(height: 16),
               
               // 옵션 목록
@@ -195,9 +261,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          '루틴 생성',
-                          style: TextStyle(
+                      : Text(
+                          widget.routineToEdit != null ? '루틴 수정' : '루틴 생성',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -346,18 +412,28 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         updatedAt: DateTime.now(),
       );
 
-      // TODO: API 호출로 루틴 생성 처리
-      // await ApiService().post('/routines', routine.toJson());
-      
-      // 임시로 루틴 객체를 사용하여 생성 시뮬레이션
-      routine.toString(); // 변수 사용으로 경고 제거
+      if (widget.routineToEdit != null) {
+        // 수정 모드: 기존 루틴 업데이트
+        // TODO: API 호출로 루틴 수정 처리
+        // await ApiService().put('/routines/${widget.routineToEdit!.id}', routine.toJson());
+        
+        // 임시로 루틴 객체를 사용하여 수정 시뮬레이션
+        routine.toString(); // 변수 사용으로 경고 제거
+      } else {
+        // 생성 모드: 새 루틴 생성
+        // TODO: API 호출로 루틴 생성 처리
+        // await ApiService().post('/routines', routine.toJson());
+        
+        // 임시로 루틴 객체를 사용하여 생성 시뮬레이션
+        routine.toString(); // 변수 사용으로 경고 제거
+      }
       
       await Future.delayed(const Duration(seconds: 2)); // 임시 딜레이
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('루틴이 성공적으로 생성되었습니다!'),
+          SnackBar(
+            content: Text(widget.routineToEdit != null ? '루틴이 성공적으로 수정되었습니다!' : '루틴이 성공적으로 생성되었습니다!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -369,7 +445,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('루틴 생성 중 오류가 발생했습니다: $e'),
+            content: Text(widget.routineToEdit != null ? '루틴 수정 중 오류가 발생했습니다: $e' : '루틴 생성 중 오류가 발생했습니다: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -437,13 +513,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   icon: Ionicons.time_outline,
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return '분을 입력해주세요';
-                    }
-                    final minutes = int.tryParse(value);
-                    if (minutes == null || minutes <= 0) {
-                      return '올바른 분을 입력해주세요';
-                    }
+                    // 옵션 필드는 선택사항이므로 유효성 검사 제거
                     return null;
                   },
                 ),
@@ -459,9 +529,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   hint: '알림 텍스트를 입력하세요',
                   icon: Ionicons.chatbubble_outline,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return '텍스트를 입력해주세요';
-                    }
+                    // 옵션 필드는 선택사항이므로 유효성 검사 제거
                     return null;
                   },
                 ),
@@ -515,4 +583,5 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
       ),
     );
   }
+
 }

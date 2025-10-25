@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import '../constants/app_colors.dart';
-import '../widgets/custom_button.dart';
-import '../auth/auth.dart';
 import '../routine/routine.dart';
-import '../info/myInfo.dart';
 import 'character_selection_screen.dart';
+import 'voice_chat_screen.dart';
 import '../models/routine_model.dart';
+import '../components/routine_detail_popup.dart';
+import '../components/bottom_navigation_bar.dart';
+import 'notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +19,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isDrawerOpen = false;
-  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -49,12 +49,19 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Ionicons.notifications_outline, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
+                actions: [
+                  IconButton(
+                    icon: const Icon(Ionicons.notifications_outline, color: Colors.black),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.white,
           statusBarIconBrightness: Brightness.dark,
@@ -90,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildSummaryCard('이번 주', '2.5시간'),
+                      child: _buildSummaryCard('이번 주 성공 루틴', '20'),
                     ),
                   ],
                 ),
@@ -171,13 +178,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         setState(() {
                           _isDrawerOpen = false;
                         });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
                             builder: (context) => const CharacterSelectionScreen(),
-                      ),
-                    );
-                  },
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Ionicons.mic_outline,
+                      title: '음성 대화',
+                      onTap: () {
+                        setState(() {
+                          _isDrawerOpen = false;
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const VoiceChatScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildDrawerItem(
                       icon: Ionicons.trophy_outline,
@@ -221,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+              bottomNavigationBar: CustomBottomNavigationBar(currentIndex: 2),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -469,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatItem('완료된 루틴', '12', Colors.green),
+                  child: _buildStatItem('완료된 루틴', '20', Colors.green),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -477,7 +499,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatItem('총 루틴', '5', Colors.purple),
+                  child: _buildStatItem('총 루틴', '21', Colors.purple),
                 ),
               ],
             ),
@@ -663,12 +685,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RoutineDetailScreen(routine: dummyRoutine),
-          ),
-        );
+        RoutineDetailPopup.show(context, dummyRoutine);
       },
       borderRadius: BorderRadius.circular(12.0),
       child: Container(
@@ -896,69 +913,5 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _currentIndex,
-                onTap: (index) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                  
-                  if (index == 3) { // 캐릭터 탭
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CharacterSelectionScreen(),
-                      ),
-                    );
-                  } else if (index == 4) { // 마이페이지 탭
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MyInfoScreen(),
-                      ),
-                    );
-                  }
-                },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.home_outline),
-            activeIcon: Icon(Ionicons.home),
-            label: '홈',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.calendar_outline),
-            label: '루틴',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.people_outline),
-            label: '팀',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.people_circle_outline),
-            label: '캐릭터',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Ionicons.person_outline),
-            label: '마이',
-          ),
-        ],
-      ),
-    );
-  }
+
 }
